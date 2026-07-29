@@ -8,6 +8,7 @@ import { Toast } from './src/ui';
 import Onboarding from './src/screens/Onboarding';
 import Login from './src/screens/Login';
 import Signup from './src/screens/Signup';
+import ForgotPassword from './src/screens/ForgotPassword';
 import Home from './src/screens/Home';
 import ServiceListing from './src/screens/ServiceListing';
 import WorkerProfile from './src/screens/WorkerProfile';
@@ -23,7 +24,7 @@ import Bookings from './src/screens/Bookings';
 import Notifications from './src/screens/Notifications';
 
 const SCREENS: Record<string, any> = {
-  onboarding: Onboarding, login: Login, signup: Signup, home: Home, serviceListing: ServiceListing,
+  onboarding: Onboarding, login: Login, signup: Signup, forgotPassword: ForgotPassword, home: Home, serviceListing: ServiceListing,
   workerProfile: WorkerProfile, postJob: PostJob, bidding: Bidding, bookingPayment: BookingPayment,
   chat: Chat, rating: Rating, workerDashboard: WorkerDashboard, kyc: Kyc, settings: Settings,
   bookings: Bookings, notifications: Notifications,

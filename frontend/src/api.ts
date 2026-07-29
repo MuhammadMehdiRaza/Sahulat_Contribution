@@ -51,6 +51,8 @@ export const api = {
   signup: (body: any) => req('/auth/signup', { method: 'POST', body }),
   login: (body: any) => req('/auth/login', { method: 'POST', body }),
   loginVerify: (body: any) => req('/auth/login/verify', { method: 'POST', body }),
+  forgotStart: (username: string) => req('/auth/forgot/start', { method: 'POST', body: { username } }),
+  forgotReset: (body: any) => req('/auth/forgot/reset', { method: 'POST', body }),
   me: () => req('/auth/me'),
   setLanguage: (language: string) => req('/auth/me/language', { method: 'PATCH', body: { language } }),
   // profiles

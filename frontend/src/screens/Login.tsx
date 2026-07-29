@@ -50,7 +50,10 @@ export default function Login() {
           <Field label={t('password')} placeholder="••••••••" value={password} onChangeText={setPassword} secureTextEntry />
           <Field label={t('phone')} placeholder="03XX XXXXXXX" value={phone} onChangeText={setPhone} keyboardType="phone-pad" maxLength={12} />
           <Btn title={t('loginBtn')} onPress={submitCreds} loading={loading} />
-          <TouchableOpacity onPress={() => navigate('signup')} style={{ marginTop: 16 }}>
+          <TouchableOpacity onPress={() => navigate('forgotPassword')} style={{ marginTop: 14 }}>
+            <Text style={s.link}>{t('forgotLink')}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => navigate('signup')} style={{ marginTop: 12 }}>
             <Text style={s.link}>{t('noAccount')}</Text>
           </TouchableOpacity>
         </View>

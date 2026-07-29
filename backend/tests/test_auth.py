@@ -82,3 +82,30 @@ def test_signup_duplicate_username(client):
     r = client.post("/api/v1/auth/signup", json={
         "username": "dup", "password": "x1234", "full_name": "T", "phone": "03001110002", "role": "hirer"})
     assert r.status_code == 409
+
+
+def test_forgot_password_flow(client):
+    client.post("/api/v1/auth/signup", json={
+        "username": "forgetme", "password": "oldpass1", "full_name": "F", "phone": "03008881111", "role": "hirer"})
+    r = client.post("/api/v1/auth/forgot/start", json={"username": "forgetme"})
+    assert r.status_code == 200
+    code = r.json()["debug_code"]
+    r2 = client.post("/api/v1/auth/forgot/reset", json={"username": "forgetme", "code": code, "new_password": "newpass1"})
+    assert r2.status_code == 200 and r2.json()["ok"] is True
+    # new password works, old one does not
+    assert client.post("/api/v1/auth/login", json={"username": "forgetme", "password": "newpass1", "phone": "03008881111"}).status_code == 200
+    assert client.post("/api/v1/auth/login", json={"username": "forgetme", "password": "oldpass1", "phone": "03008881111"}).status_code == 401
+
+
+def test_forgot_username_not_found(client):
+    r = client.post("/api/v1/auth/forgot/start", json={"username": "nosuchuser"})
+    assert r.status_code == 404
+
+
+def test_forgot_wrong_otp_rejected(client):
+    client.post("/api/v1/auth/signup", json={
+        "username": "fp2", "password": "pass1234", "full_name": "F", "phone": "03008882222", "role": "worker"})
+    code = client.post("/api/v1/auth/forgot/start", json={"username": "fp2"}).json()["debug_code"]
+    wrong = "9999" if code != "9999" else "0000"
+    r = client.post("/api/v1/auth/forgot/reset", json={"username": "fp2", "code": wrong, "new_password": "newpass1"})
+    assert r.status_code == 400
