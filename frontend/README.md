@@ -1,7 +1,7 @@
 # KaamConnect — Mobile App (Expo / React Native)
 
 The Sahulat / KaamConnect client, wired to the FastAPI backend. Runs on Android, iOS, and
-**web** (used for browser demos). Built with Expo SDK 57 + React Native 0.86.
+**web** (used for browser demos). Built with Expo SDK 54 + React Native 0.81.
 
 ## Run (web / browser demo)
 1. **Start the backend first** (see `../backend/README.md`), then seed demo data:
@@ -39,5 +39,18 @@ src/
   state.tsx        auth + navigation context (+ demo deep-link)
   ui.tsx           shared components (Btn, Card, Badge, Header, Field, Screen…)
   BottomNav.tsx    role-aware bottom navigation
-  screens/         15 screens (onboarding … admin-facing bookings)
+  dates.ts         date/time + deadline helpers
+  screens/         20+ screens (onboarding, home, post job, applicants, chat,
+                   booking status, wallet, worker profile, …)
 ```
+
+## Not yet added (planned)
+- **Interactive map location picker** — you can pick your **current GPS** or a **city from across
+  Pakistan**; a full drag-a-pin map needs `react-native-maps` + a Google Maps/Mapbox key.
+- **Real device push notifications** — alerts are **in-app only** (no FCM/APNs yet).
+- **Real voice notes / voice-to-text** — voice input is mocked (returns a canned transcript).
+- **Real wallet top-up** — Easypaisa/JazzCash top-up is a **sandbox/instant-credit** demo; real
+  money-in needs a merchant account + a payment webhook on the backend.
+- **Installable builds** — runs today via **Expo Go** and **web**; Android **APK** / iOS builds are
+  produced with **EAS** (iOS also needs an Apple Developer account). Verified on **Android + web**;
+  not yet run on a physical **iPhone** (the code is fully cross-platform).
