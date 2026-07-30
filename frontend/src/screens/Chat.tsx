@@ -47,12 +47,12 @@ function ThreadList() {
                 <View style={st.avatarRow}>
                   <View style={st.avatar}><Text style={st.avatarTxt}>{(name[0] || '?').toUpperCase()}</Text></View>
                   <View style={{ flex: 1 }}>
-                    <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                      <Text style={{ fontWeight: '700', color: colors.text }} numberOfLines={1}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <Text style={{ flex: 1, marginRight: 8, fontWeight: '700', color: colors.text }} numberOfLines={1}>
                         {name}
                         {th.category ? <Text style={{ color: colors.sub, fontWeight: '400', fontSize: 12 }}>  ·  {t('svc_' + th.category)}</Text> : null}
                       </Text>
-                      <Text style={{ color: colors.muted, fontSize: 11 }}>{relLabel(th.last_at, t('today'), t('yesterday'))}</Text>
+                      <Text style={{ color: colors.muted, fontSize: 11 }} numberOfLines={1}>{relLabel(th.last_at, t('today'), t('yesterday'))}</Text>
                     </View>
                     <Text style={{ color: colors.sub, fontSize: 13, marginTop: 2 }} numberOfLines={1}>
                       {th.last_message || t('sayHi')}

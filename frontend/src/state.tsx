@@ -32,7 +32,7 @@ type Ctx = {
   locating: boolean;
   gotReal: boolean;            // true once a real GPS fix replaced the default
   locationDenied: boolean;     // permission permanently denied (send user to settings)
-  refreshLocation: () => void;
+  refreshLocation: () => Promise<Coords | null>;  // resolves the new coords (or null if unavailable)
 };
 
 const AppCtx = createContext<Ctx>(null as any);
@@ -54,21 +54,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   // Resolve the user's real location (falls back to Lahore if denied/unavailable), so
   // matching/posting use where the user actually is — not a hardcoded city. Re-runnable.
-  const refreshLocation = useCallback(async () => {
+  const refreshLocation = useCallback(async (): Promise<Coords | null> => {
     setLocating(true);
     try {
       let perm = await Location.getForegroundPermissionsAsync();
       if (perm.status !== 'granted') perm = await Location.requestForegroundPermissionsAsync();
-      if (perm.status !== 'granted') { setLocationDenied(!perm.canAskAgain); return; }
+      if (perm.status !== 'granted') { setLocationDenied(!perm.canAskAgain); return null; }
       setLocationDenied(false);
       const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
       if (pos?.coords) {
-        const lat = pos.coords.latitude, lng = pos.coords.longitude;
-        setCoords({ lat, lng });
+        const c = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+        setCoords(c);
         setGotReal(true);
         // On-device reverse geocoding — turns GPS into a city/country name (no API key).
         try {
-          const geo = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lng });
+          const geo = await Location.reverseGeocodeAsync({ latitude: c.lat, longitude: c.lng });
           const g = geo && geo[0];
           if (g) {
             const city = g.city || g.subregion || g.district || g.region || '';
@@ -76,8 +76,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             if (label) setPlace(label);
           }
         } catch { /* reverse geocoding not available (e.g. web) — keep coordinates-based flow */ }
+        return c;
       }
-    } catch { /* keep the current coordinates */ }
+      return null;
+    } catch { return null; }  // keep the current coordinates
     finally { setLocating(false); }
   }, []);
 

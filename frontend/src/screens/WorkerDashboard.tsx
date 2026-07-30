@@ -7,7 +7,7 @@ import { colors } from '../theme';
 import { Badge, Btn, Card, Header, LocationBanner, RadiusPicker, Row, Screen, TaskBanner } from '../ui';
 
 export default function WorkerDashboard() {
-  const { user, navigate, showToast, coords, t, n } = useApp();
+  const { user, navigate, showToast, coords, place, locating, t, n } = useApp();
   const [profile, setProfile] = useState<any | null>(null);
   const [kyc, setKyc] = useState<any | null>(null);
   const [wallet, setWallet] = useState<any | null>(null);
@@ -16,6 +16,9 @@ export default function WorkerDashboard() {
   const [pending, setPending] = useState(0);
   const available = profile?.availability === 'available';
   const verified = kyc?.badges?.cnic;
+  // Look for jobs around the worker's saved work location (falls back to live GPS).
+  const wlat = profile?.base_lat ?? coords.lat;
+  const wlng = profile?.base_lng ?? coords.lng;
 
   const load = async () => {
     try { setProfile(await api.myProfile()); } catch {}
@@ -26,9 +29,9 @@ export default function WorkerDashboard() {
       setPending(bs.filter((b: any) => ['pending_approval', 'confirmed', 'in_progress'].includes(b.status)).length);
     } catch {}
   };
-  const loadJobs = async () => { try { setJobs(await api.nearbyJobs(coords.lat, coords.lng, radius)); } catch {} };
+  const loadJobs = async () => { try { setJobs(await api.nearbyJobs(wlat, wlng, radius)); } catch {} };
   useEffect(() => { load(); }, []);
-  useEffect(() => { loadJobs(); }, [radius, coords.lat, coords.lng]);
+  useEffect(() => { loadJobs(); }, [radius, wlat, wlng]);
 
   const toggle = async (val: boolean) => {
     try {
@@ -41,11 +44,13 @@ export default function WorkerDashboard() {
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
-      <Header title={t('dashGreeting', { name: user?.full_name?.split(' ')[0] || t('worker') })} subtitle={t('workerDash')} />
+      <Header title={t('dashGreeting', { name: user?.full_name?.split(' ')[0] || t('worker') })}
+        subtitle={`📍 ${locating ? t('locating') : place}`} />
       <Screen>
         <LocationBanner />
         {/* Task-driven banners: the worker sees exactly what to do next */}
         {!verified && <TaskBanner icon="🪪" tone="amber" title={t('bannerKycTitle')} subtitle={t('bannerKycSub')} action={t('confirm')} onAction={() => navigate('kyc')} />}
+        <TaskBanner icon="👤" tone="blue" title={t('workerProfileTitle')} subtitle={t('workerProfileSub')} action={t('editLbl')} onAction={() => navigate('workerProfileEdit')} />
         {verified && !available && <TaskBanner icon="📡" tone="blue" title={t('bannerOfflineTitle')} subtitle={t('bannerOfflineSub')} action={t('goOnline')} onAction={() => toggle(true)} />}
         {pending > 0 && <TaskBanner icon="📋" tone="green" title={t('bannerJobsTitle', { n: n(pending) })} subtitle={t('bannerJobsSub')} action={t('reviewLbl')} onAction={() => navigate('bookings')} />}
 

@@ -27,6 +27,7 @@ import MyJobs from './src/screens/MyJobs';
 import JobApplicants from './src/screens/JobApplicants';
 import BookingDetail from './src/screens/BookingDetail';
 import Wallet from './src/screens/Wallet';
+import WorkerProfileEdit from './src/screens/WorkerProfileEdit';
 
 const SCREENS: Record<string, any> = {
   onboarding: Onboarding, login: Login, signup: Signup, forgotPassword: ForgotPassword, home: Home, serviceListing: ServiceListing,
@@ -34,6 +35,7 @@ const SCREENS: Record<string, any> = {
   chat: Chat, rating: Rating, workerDashboard: WorkerDashboard, kyc: Kyc, settings: Settings,
   bookings: Bookings, notifications: Notifications,
   jobDetail: JobDetail, myJobs: MyJobs, jobApplicants: JobApplicants, bookingDetail: BookingDetail, wallet: Wallet,
+  workerProfileEdit: WorkerProfileEdit,
 };
 
 function Router() {

@@ -39,7 +39,10 @@ export default function Settings() {
         <Card onPress={() => navigate('notifications')}><Text style={st.row}>{t('notificationsRow')}</Text></Card>
         <Card onPress={() => navigate('bookings')}><Text style={st.row}>{t('myBookings')}</Text></Card>
         {user?.role === 'worker'
-          ? <Card onPress={() => navigate('kyc')}><Text style={st.row}>{t('identityKycRow')}</Text></Card>
+          ? <>
+              <Card onPress={() => navigate('workerProfileEdit')}><Text style={st.row}>{t('myWorkProfileRow')}</Text></Card>
+              <Card onPress={() => navigate('kyc')}><Text style={st.row}>{t('identityKycRow')}</Text></Card>
+            </>
           : <Card onPress={() => navigate('postJob')}><Text style={st.row}>{t('postJobRow')}</Text></Card>}
 
         <Btn title={t('logout')} variant="danger" onPress={logout} style={{ marginTop: 8 }} />
