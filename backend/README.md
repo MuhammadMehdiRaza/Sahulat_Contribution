@@ -2,7 +2,7 @@
 
 Backend for **Sahulat / KaamConnect**, an agentic domestic-services marketplace for
 Pakistan. Implements Section 5.2 (*Architecture, Backend & Database*) as a runnable,
-tested service. Design doc: `Section_5.2_Complete_Deliverable.pdf` (in the project documents pack).
+tested service. Design doc: [`../docs/Section_5.2_Architecture_Backend_Database.pdf`](../docs/Section_5.2_Architecture_Backend_Database.pdf).
 
 ## Stack
 FastAPI · SQLAlchemy 2.0 · Pydantic v2 · JWT (PyJWT) · PostgreSQL/PostGIS + Redis
@@ -29,7 +29,7 @@ Interactive API docs (OpenAPI/Swagger) at **`/docs`**, health at **`/health`**.
 ## Run the tests
 ```bash
 cd backend
-.venv/Scripts/python -m pytest         # 78 tests, all modules, no external services
+.venv/Scripts/python -m pytest         # all modules, no external services
 ```
 
 ## Run with Docker (Postgres + PostGIS + Redis)
@@ -63,27 +63,6 @@ backend/
   tests/         pytest suite (one file per module) + conftest fixtures
   Dockerfile · docker-compose.yml · .env.example · DEPLOYMENT.md
 ```
-
-## Not yet implemented (planned)
-Everything external is wired as a **mock adapter with a clean seam**, so going live is mostly
-adding real credentials — not rewriting modules. What is **not** done yet:
-
-- **Real external providers** (currently mocked in `app/adapters/__init__.py`, toggled by the
-  matching `*_PROVIDER` env var): NADRA identity/biometric **KYC**, **EasyPaisa/JazzCash** payments
-  **and wallet top-up (real money-in)**, **SMS/WhatsApp** OTP delivery, **voice-to-text** (Whisper /
-  hosted), and **push notifications** (FCM/APNs). In-app notifications and the wallet/escrow
-  **accounting** are real; only the outside-company calls are simulated.
-- **Agentic AI negotiation** — the shipped engine (`app/modules/bidding/engine.py`) is a
-  deterministic rule-based concession model; the LLM-agent (LangGraph/LangChain) version is future work.
-- **Production data stores** — dev uses **SQLite** with in-process haversine matching; **PostgreSQL +
-  PostGIS** and **Redis GEO** are the production path (`DATABASE_URL`, `USE_REDIS`), plus **Alembic
-  migrations** (today it's `create_all` + a light startup column patcher in `main.py`).
-- **Deployment** — Dockerfile/compose and `DEPLOYMENT.md` are ready, but the service is **not hosted**
-  yet (no live HTTPS URL).
-- **Production hardening** — request rate-limiting, a strong `SECRET_KEY`, `EXPOSE_DEBUG_OTP=false`,
-  and tightened CORS are still to do before going live.
-
-Full breakdown with the exact accounts/keys needed: `docs/KaamConnect_Tasks_Remaining_Detailed.pdf`.
 
 ## Notes
 - Money is `NUMERIC(12,2)`; UUID string PKs for SQLite/Postgres portability.
