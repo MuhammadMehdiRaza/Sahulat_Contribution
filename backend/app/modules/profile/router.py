@@ -58,6 +58,14 @@ class RatingOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class ReviewOut(BaseModel):
+    id: str
+    stars: int
+    comment: str
+    rater_name: str
+    created_at: str
+
+
 # -------------------------------------------------------------------- helpers
 def _worker_out(user: User, wp: WorkerProfile) -> WorkerProfileOut:
     return WorkerProfileOut(
@@ -142,6 +150,24 @@ def public_worker(worker_id: str, db: Session = Depends(get_db), _: User = Depen
     if user is None or user.role != "worker":
         raise HTTPException(404, "Worker not found")
     return _worker_out(user, _get_worker_profile(db, worker_id))
+
+
+@router.get("/workers/{worker_id}/reviews", response_model=List[ReviewOut])
+def worker_reviews(worker_id: str, db: Session = Depends(get_db), _: User = Depends(get_current_user)):
+    """Public reviews (ratings with a comment) a worker has earned from completed jobs."""
+    rows = (
+        db.query(Rating).filter(Rating.ratee_id == worker_id)
+        .order_by(Rating.created_at.desc()).limit(20).all()
+    )
+    out: List[ReviewOut] = []
+    for r in rows:
+        rater = db.get(User, r.rater_id)
+        out.append(ReviewOut(
+            id=r.id, stars=r.stars, comment=r.comment or "",
+            rater_name=(rater.full_name if rater else "Customer"),
+            created_at=r.created_at.isoformat(),
+        ))
+    return out
 
 
 @router.get("/me/ratings", response_model=List[RatingOut])

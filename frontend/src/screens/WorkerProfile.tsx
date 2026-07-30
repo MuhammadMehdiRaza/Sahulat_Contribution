@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { api } from '../api';
+import { fmtDate } from '../dates';
 import { useApp } from '../state';
 import { colors } from '../theme';
 import { Badge, Btn, Card, Header, Loading, Row, Screen } from '../ui';
@@ -9,13 +10,21 @@ export default function WorkerProfile() {
   const { params, navigate, goBack, showToast, t, n } = useApp();
   const id = params.worker?.worker_id || params.worker?.user_id;
   const [w, setW] = useState<any | null>(null);
+  const [reviews, setReviews] = useState<any[]>([]);
 
-  useEffect(() => { (async () => { try { setW(await api.publicWorker(id)); } catch (e: any) { showToast(e.message); } })(); }, [id]);
+  useEffect(() => {
+    (async () => {
+      try { setW(await api.publicWorker(id)); } catch (e: any) { showToast(e.message); }
+      try { setReviews(await api.workerReviews(id)); } catch {}
+    })();
+  }, [id]);
   if (!w) return <View style={{ flex: 1 }}><Header title={t('worker')} onBack={goBack} /><Loading /></View>;
+  const written = reviews.filter((r) => (r.comment || '').trim());
+  const jobBooked = ['booked', 'completed', 'cancelled'].includes(params.job?.status);
 
   const badges = Object.entries(w.badges || {}).filter(([, v]) => v).map(([k]) => k.toUpperCase());
   const message = async () => {
-    try { const th = await api.createThread({ peer_id: id }); navigate('chat', { threadId: th.id, peerName: w.full_name }); }
+    try { const th = await api.createThread({ peer_id: id, job_id: params.job?.id }); navigate('chat', { threadId: th.id, peerName: w.full_name }); }
     catch (e: any) { showToast(e.message); }
   };
 
@@ -39,10 +48,30 @@ export default function WorkerProfile() {
           </Row>
         </Card>
 
-        <Btn title={t('negotiate')} onPress={() => navigate('bidding', { worker: w, job: params.job })} />
-        <Btn title={t('bookNow')} variant="outline" style={{ marginTop: 10 }}
-          onPress={() => navigate('bookingPayment', { worker: w, job: params.job, agreed_price: w.rate_target || 2000 })} />
+        {jobBooked ? (
+          <View style={st.bookedNote}><Text style={st.bookedNoteTxt}>{t('alreadyBookedNote')}</Text></View>
+        ) : (
+          <>
+            <Btn title={t('negotiate')} onPress={() => navigate('bidding', { worker: w, job: params.job })} />
+            <Btn title={t('bookNow')} variant="outline" style={{ marginTop: 10 }}
+              onPress={() => navigate('bookingPayment', { worker: w, job: params.job, agreed_price: w.rate_target || 2000 })} />
+          </>
+        )}
         <Btn title={t('message')} variant="outline" style={{ marginTop: 10 }} onPress={message} />
+
+        <Text style={st.reviewsH}>{t('reviewsTitle')}</Text>
+        {written.length === 0 ? (
+          <Text style={st.sub}>{t('noReviews')}</Text>
+        ) : written.map((r) => (
+          <Card key={r.id} style={{ padding: 12 }}>
+            <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+              <Text style={st.reviewer} numberOfLines={1}>{r.rater_name}</Text>
+              <Text style={st.stars}>{'⭐'.repeat(r.stars)}</Text>
+            </Row>
+            {r.created_at ? <Text style={st.reviewDate}>{fmtDate(r.created_at)}</Text> : null}
+            <Text style={st.reviewTxt}>{r.comment}</Text>
+          </Card>
+        ))}
       </Screen>
     </View>
   );
@@ -54,4 +83,12 @@ const st = StyleSheet.create({
   stat: { fontSize: 16, fontWeight: '800', color: colors.green700 },
   statL: { color: colors.sub, fontSize: 12 },
   bio: { color: colors.sub, marginTop: 12, lineHeight: 20 },
+  reviewsH: { fontSize: 16, fontWeight: '800', color: colors.text, marginTop: 22, marginBottom: 12 },
+  reviewer: { fontWeight: '700', color: colors.text, fontSize: 13, flex: 1, marginRight: 8 },
+  stars: { fontSize: 12 },
+  reviewDate: { color: colors.muted, fontSize: 11, marginTop: 2 },
+  reviewTxt: { color: colors.sub, marginTop: 6, lineHeight: 19 },
+  bookedNote: { backgroundColor: '#ede9fe', borderColor: '#ddd6fe', borderWidth: 1, borderRadius: 12, padding: 14 },
+  bookedNoteTxt: { color: '#6d28d9', fontWeight: '600', lineHeight: 19 },
 });
+

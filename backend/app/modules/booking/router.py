@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 from ...core.database import get_db
 from ...core.deps import get_current_user, require_role
 from ...core.security import hash_secret, verify_secret
-from ...models import Booking, Job, Rating, User, WorkerProfile
+from ...models import Booking, HirerProfile, Job, Rating, User, WorkerProfile
 from ..notifications.service import notify
 from ..payment import service as pay
 from .service import create_booking
@@ -55,6 +55,15 @@ class BookingOut(BaseModel):
     platform_fee: float
     payment_method: str
     status: str
+    worker_name: str = ""
+    hirer_name: str = ""
+    category: str = ""
+    created_at: Optional[datetime] = None
+    started_at: Optional[datetime] = None
+    completed_at: Optional[datetime] = None
+    deadline: Optional[datetime] = None   # job's complete-by time (auto-cancel if missed)
+    rated: bool = False               # has the caller already rated this booking?
+    my_rating: Optional[int] = None   # stars the caller gave (if rated)
     model_config = {"from_attributes": True}
 
 
@@ -68,6 +77,45 @@ def _get_participant_booking(db: Session, booking_id: str, user: User) -> Bookin
     return booking
 
 
+def _booking_out(db: Session, b: Booking, user: Optional[User] = None) -> BookingOut:
+    """Booking + the other party's name + job category + dates, for the bookings UI."""
+    worker = db.get(User, b.worker_id)
+    hirer = db.get(User, b.hirer_id)
+    job = db.get(Job, b.job_id)
+    rated, my_rating = False, None
+    if user is not None:
+        r = db.query(Rating).filter(Rating.booking_id == b.id, Rating.rater_id == user.id).first()
+        if r:
+            rated, my_rating = True, r.stars
+    return BookingOut(
+        id=b.id, job_id=b.job_id, hirer_id=b.hirer_id, worker_id=b.worker_id, session_id=b.session_id,
+        agreed_price=b.agreed_price, platform_fee=b.platform_fee, payment_method=b.payment_method,
+        status=b.status, worker_name=(worker.full_name if worker else ""),
+        hirer_name=(hirer.full_name if hirer else ""), category=(job.category if job else ""),
+        created_at=b.created_at, started_at=b.started_at, completed_at=b.completed_at,
+        deadline=(job.deadline if job else None), rated=rated, my_rating=my_rating,
+    )
+
+
+def _auto_cancel_if_overdue(db: Session, booking: Booking) -> bool:
+    """If the job's deadline lapsed while still active, auto-cancel + refund the hirer
+    (the worker is NOT paid). Returns True if it cancelled."""
+    if booking.status not in ("pending_approval", "confirmed", "in_progress"):
+        return False
+    job = db.get(Job, booking.job_id)
+    if job is None or job.deadline is None or job.deadline >= datetime.utcnow():
+        return False
+    if booking.payment_method != "cod":
+        pay.refund_escrow(db, booking)  # money returns to the hirer's wallet
+    booking.status = "cancelled"
+    job.status = "cancelled"
+    notify(db, booking.hirer_id, "booking_cancelled", "Deadline passed ⏰",
+           "Your booking was auto-cancelled and refunded because the deadline passed.", {"booking_id": booking.id})
+    notify(db, booking.worker_id, "booking_cancelled", "Deadline passed ⏰",
+           "The booking was auto-cancelled because the deadline passed — no payment was made.", {"booking_id": booking.id})
+    return True
+
+
 # -------------------------------------------------------------------- endpoints
 @router.post("", response_model=BookingOut, status_code=201)
 def create(payload: BookingIn, db: Session = Depends(get_db), user: User = Depends(require_role("hirer"))):
@@ -77,10 +125,17 @@ def create(payload: BookingIn, db: Session = Depends(get_db), user: User = Depen
     worker = db.get(User, payload.worker_id)
     if worker is None or worker.role != "worker":
         raise HTTPException(404, "Worker not found")
-    booking = create_booking(
-        db, job=job, worker_id=payload.worker_id, agreed_price=payload.agreed_price,
-        payment_method=payload.payment_method, session_id=payload.session_id,
-    )
+    # prevent creating a second booking for a job that is already booked
+    existing = db.query(Booking).filter(Booking.job_id == job.id, Booking.status != "cancelled").first()
+    if existing:
+        raise HTTPException(409, "This job already has a booking.")
+    try:
+        booking = create_booking(
+            db, job=job, worker_id=payload.worker_id, agreed_price=payload.agreed_price,
+            payment_method=payload.payment_method, session_id=payload.session_id,
+        )
+    except pay.InsufficientFunds:
+        raise HTTPException(402, "Insufficient wallet balance. Please top up your wallet and try again.")
     notify(db, worker.id, "booking_offer", "New booking", f"You have a new booking for {job.category}.",
            {"booking_id": booking.id})
     db.commit()
@@ -93,11 +148,13 @@ def confirm(booking_id: str, db: Session = Depends(get_db), user: User = Depends
     booking = _get_participant_booking(db, booking_id, user)
     if booking.worker_id != user.id:
         raise HTTPException(403, "Only the assigned worker can confirm")
+    if _auto_cancel_if_overdue(db, booking):
+        db.commit()
+        raise HTTPException(409, "The deadline for this job has passed; the booking was auto-cancelled.")
     if booking.status != "pending_approval":
         raise HTTPException(409, f"Cannot confirm from status '{booking.status}'")
     booking.status = "confirmed"
-    if booking.payment_method != "cod":
-        pay.hold_escrow(db, booking)  # FR-PAY-01: lock funds before service begins
+    # Funds were already locked from the hirer's wallet when the booking was created.
     notify(db, booking.hirer_id, "booking_confirmed", "Booking confirmed",
            "The worker accepted your booking.", {"booking_id": booking.id})
     db.commit()
@@ -110,6 +167,9 @@ def start(booking_id: str, db: Session = Depends(get_db), user: User = Depends(r
     booking = _get_participant_booking(db, booking_id, user)
     if booking.worker_id != user.id:
         raise HTTPException(403, "Only the assigned worker can start")
+    if _auto_cancel_if_overdue(db, booking):
+        db.commit()
+        raise HTTPException(409, "The deadline for this job has passed; the booking was auto-cancelled.")
     if booking.status != "confirmed":
         raise HTTPException(409, f"Cannot start from status '{booking.status}'")
     booking.status = "in_progress"
@@ -122,6 +182,9 @@ def start(booking_id: str, db: Session = Depends(get_db), user: User = Depends(r
 @router.post("/{booking_id}/complete", response_model=BookingOut)
 def complete(booking_id: str, payload: CompleteIn, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
     booking = _get_participant_booking(db, booking_id, user)
+    if _auto_cancel_if_overdue(db, booking):
+        db.commit()
+        raise HTTPException(409, "The deadline has passed; the booking was auto-cancelled and refunded — no payment was made.")
     if booking.status != "in_progress":
         raise HTTPException(409, f"Cannot complete from status '{booking.status}'")
 
@@ -156,8 +219,10 @@ def cancel(booking_id: str, payload: CancelIn, db: Session = Depends(get_db), us
     booking = _get_participant_booking(db, booking_id, user)
     if booking.status not in ("pending_approval", "confirmed"):
         raise HTTPException(409, f"Cannot cancel from status '{booking.status}'")
-    if booking.status == "confirmed" and booking.payment_method != "cod":
-        pay.refund_escrow(db, booking)  # return held funds to the hirer
+    # Escrow is held from the hirer's wallet at booking creation, so ANY non-COD booking
+    # (pending_approval or confirmed) must refund the hirer on cancellation.
+    if booking.payment_method != "cod":
+        pay.refund_escrow(db, booking)  # return held funds to the hirer's wallet
     booking.status = "cancelled"
     job = db.get(Job, booking.job_id)
     if job:
@@ -175,16 +240,22 @@ def rate(booking_id: str, payload: RateIn, db: Session = Depends(get_db), user: 
     booking = _get_participant_booking(db, booking_id, user)
     if booking.status != "completed":
         raise HTTPException(409, "Can only rate a completed booking")
+    # one review per person per booking (hirer↔worker two-way rating)
+    if db.query(Rating).filter(Rating.booking_id == booking.id, Rating.rater_id == user.id).first():
+        raise HTTPException(409, "You already rated this booking")
     ratee_id = booking.worker_id if user.id == booking.hirer_id else booking.hirer_id
     rating = Rating(booking_id=booking.id, rater_id=user.id, ratee_id=ratee_id,
                     stars=payload.stars, comment=payload.comment)
     db.add(rating)
-    # maintain running average on the ratee's profile
-    wp = db.query(WorkerProfile).filter(WorkerProfile.user_id == ratee_id).first()
-    if wp:
-        total = wp.rating_avg * wp.rating_count + payload.stars
-        wp.rating_count += 1
-        wp.rating_avg = round(total / wp.rating_count, 2)
+    # maintain a running average on the ratee's profile (works for both worker and hirer)
+    prof = (db.query(WorkerProfile).filter(WorkerProfile.user_id == ratee_id).first()
+            or db.query(HirerProfile).filter(HirerProfile.user_id == ratee_id).first())
+    if prof:
+        total = prof.rating_avg * prof.rating_count + payload.stars
+        prof.rating_count += 1
+        prof.rating_avg = round(total / prof.rating_count, 2)
+    notify(db, ratee_id, "rating_received", "You received a rating ⭐",
+           f"You got {payload.stars}★ for a completed job.", {"booking_id": booking.id})
     db.commit()
     return {"id": rating.id, "ratee_id": ratee_id, "stars": payload.stars}
 
@@ -196,9 +267,15 @@ def list_bookings(db: Session = Depends(get_db), user: User = Depends(get_curren
         q = q.filter(Booking.hirer_id == user.id)
     elif user.role == "worker":
         q = q.filter(Booking.worker_id == user.id)
-    return q.order_by(Booking.created_at.desc()).all()
+    rows = q.order_by(Booking.created_at.desc()).all()
+    if any([_auto_cancel_if_overdue(db, b) for b in rows]):  # sweep expired on read
+        db.commit()
+    return [_booking_out(db, b, user) for b in rows]
 
 
 @router.get("/{booking_id}", response_model=BookingOut)
 def get_booking(booking_id: str, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
-    return _get_participant_booking(db, booking_id, user)
+    booking = _get_participant_booking(db, booking_id, user)
+    if _auto_cancel_if_overdue(db, booking):
+        db.commit()
+    return _booking_out(db, booking, user)

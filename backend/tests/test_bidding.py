@@ -27,6 +27,7 @@ def test_engine_breakdown_when_no_overlap():
 
 
 def test_bidding_start_and_accept(hirer, verified_worker, client):
+    client.post("/api/v1/payments/me/wallet/topup", headers=hirer["headers"], json={"amount": 100000, "provider": "easypaisa"})
     job = client.post("/api/v1/jobs", headers=hirer["headers"], json={
         "category": "plumber", "lat": 31.5, "lng": 74.3, "budget_target": 2000, "budget_max": 3000}).json()
     r = client.post("/api/v1/bidding/start", headers=hirer["headers"],

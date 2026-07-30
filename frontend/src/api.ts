@@ -61,6 +61,7 @@ export const api = {
   setAvailability: (availability: string) => req('/profiles/me/worker/availability', { method: 'PATCH', body: { availability } }),
   updateHirer: (body: any) => req('/profiles/me/hirer', { method: 'PUT', body }),
   publicWorker: (id: string) => req(`/profiles/workers/${id}`),
+  workerReviews: (id: string) => req(`/profiles/workers/${id}/reviews`),
   myRatings: () => req('/profiles/me/ratings'),
   // kyc
   kycSubmit: (body: any) => req('/kyc/submit', { method: 'POST', body }),
@@ -68,10 +69,14 @@ export const api = {
   // jobs
   createJob: (body: any) => req('/jobs', { method: 'POST', body }),
   listJobs: () => req('/jobs'),
+  getJob: (id: string) => req(`/jobs/${id}`),
   nearbyJobs: (lat: number, lng: number, radius_km: number, category?: string) =>
     req(`/jobs/nearby?${qs({ lat, lng, radius_km, category })}`),
   nlSearch: (body: any) => req('/jobs/search/nl', { method: 'POST', body }),
   cancelJob: (id: string) => req(`/jobs/${id}/cancel`, { method: 'PATCH' }),
+  expressInterest: (jobId: string, message = '') => req(`/jobs/${jobId}/interest`, { method: 'POST', body: { message } }),
+  jobInterests: (jobId: string) => req(`/jobs/${jobId}/interests`),
+  extendDeadline: (jobId: string, deadline: string) => req(`/jobs/${jobId}/extend`, { method: 'POST', body: { deadline } }),
   // matching
   matchWorkers: (lat: number, lng: number, category: string, radius_km: number) =>
     req(`/matching/workers?${qs({ lat, lng, category, radius_km })}`),
@@ -89,8 +94,10 @@ export const api = {
   cancelBooking: (id: string, reason = '') => req(`/bookings/${id}/cancel`, { method: 'POST', body: { reason } }),
   rateBooking: (id: string, stars: number, comment = '') => req(`/bookings/${id}/rate`, { method: 'POST', body: { stars, comment } }),
   listBookings: () => req('/bookings'),
+  getBooking: (id: string) => req(`/bookings/${id}`),
   // payments
   wallet: () => req('/payments/me/wallet'),
+  topupWallet: (amount: number, provider = 'easypaisa') => req('/payments/me/wallet/topup', { method: 'POST', body: { amount, provider } }),
   codCollectFee: (booking_id: string) => req('/payments/cod/collect-fee', { method: 'POST', body: { booking_id } }),
   transactions: (id: string) => req(`/payments/bookings/${id}/transactions`),
   // chat
@@ -98,6 +105,10 @@ export const api = {
   createThread: (body: any) => req('/chat/threads', { method: 'POST', body }),
   messages: (id: string) => req(`/chat/threads/${id}/messages`),
   sendMessage: (id: string, body: any) => req(`/chat/threads/${id}/messages`, { method: 'POST', body }),
+  getOffer: (id: string) => req(`/chat/threads/${id}/offer`),
+  makeOffer: (id: string, amount: number) => req(`/chat/threads/${id}/offer`, { method: 'POST', body: { amount } }),
+  acceptOffer: (id: string) => req(`/chat/threads/${id}/offer/accept`, { method: 'POST' }),
+  bookFromThread: (id: string, payment_method = 'escrow_easypaisa') => req(`/chat/threads/${id}/booking`, { method: 'POST', body: { payment_method } }),
   // notifications
   notifications: () => req('/notifications'),
   readNotification: (id: string) => req(`/notifications/${id}/read`, { method: 'POST' }),

@@ -65,6 +65,15 @@ def refund(booking_id: str, provider: str, amount: float) -> dict:
     return {"status": "refunded", "amount": amount, "provider_ref": _ref(provider, "RFND", booking_id)}
 
 
+def topup(user_id: str, provider: str, amount: float) -> dict:
+    """Wallet top-up from EasyPaisa/JazzCash. MOCK: credits instantly.
+
+    Real integration: initiate a provider transaction (returns a checkout/redirect), then
+    credit the wallet only after the provider's signed webhook confirms the payment.
+    """
+    return {"status": "received", "amount": amount, "provider_ref": _ref(provider, "TOPUP", user_id)}
+
+
 # ------------------------------------------------------------------ Speech-to-Text (Whisper)
 def transcribe(audio_b64: str, lang: str = "ur") -> dict:
     """Mock ASR: returns a canned bilingual transcript."""

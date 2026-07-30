@@ -5,20 +5,21 @@ import { api } from '../api';
 import BottomNav from '../BottomNav';
 import { useApp } from '../state';
 import { colors, gradients, radius, services, shadow } from '../theme';
-import { Badge, Card, LangToggle, Row, Screen } from '../ui';
-
-export const LAT = 31.5204, LNG = 74.3587;
+import { Badge, Card, LangToggle, LocationBanner, RadiusPicker, Row, Screen } from '../ui';
 
 export default function Home() {
-  const { navigate, showToast, t, n } = useApp();
+  const { navigate, showToast, coords, place, locating, t, n } = useApp();
   const [q, setQ] = useState('');
   const [workers, setWorkers] = useState<any[] | null>(null);
+  const [radius, setRadius] = useState(15);
+  const [balance, setBalance] = useState<number | null>(null);
 
   useEffect(() => {
     (async () => {
-      try { setWorkers(await api.matchWorkers(LAT, LNG, '', 15)); } catch { setWorkers([]); }
+      try { setWorkers(await api.matchWorkers(coords.lat, coords.lng, '', radius)); } catch { setWorkers([]); }
     })();
-  }, []);
+  }, [radius, coords.lat, coords.lng]);
+  useEffect(() => { api.wallet().then((w) => setBalance(w.balance)).catch(() => {}); }, []);
 
   const search = async () => {
     if (!q.trim()) return;
@@ -40,7 +41,7 @@ export default function Home() {
               <TouchableOpacity onPress={() => navigate('notifications')}><Text style={{ fontSize: 22 }}>🔔</Text></TouchableOpacity>
             </Row>
           </Row>
-          <Row style={{ gap: 6, marginTop: 8 }}><Text style={{ color: '#fff' }}>📍</Text><Text style={st.city}>Lahore</Text></Row>
+          <Row style={{ gap: 6, marginTop: 8 }}><Text style={{ color: '#fff' }}>📍</Text><Text style={st.city}>{locating ? t('locating') : place}</Text></Row>
           <Row style={st.search}>
             <Text style={{ fontSize: 16 }}>🔍</Text>
             <TextInput value={q} onChangeText={setQ} placeholder={t('searchPlaceholder')}
@@ -50,10 +51,7 @@ export default function Home() {
         </LinearGradient>
 
         <View style={{ padding: 16 }}>
-          <TouchableOpacity style={st.emergency} onPress={() => navigate('postJob', { emergency: true })}>
-            <Text style={st.emergencyTxt}>{t('emergency')}</Text>
-          </TouchableOpacity>
-
+          <LocationBanner />
           <View style={st.trust}>
             <Text style={{ fontSize: 24 }}>✅</Text>
             <View style={{ flex: 1 }}>
@@ -61,6 +59,26 @@ export default function Home() {
               <Text style={st.trustS}>{t('trustSub')}</Text>
             </View>
           </View>
+
+          <Card onPress={() => navigate('wallet')} style={{ marginTop: 14 }}>
+            <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+              <View style={{ flex: 1 }}>
+                <Text style={st.myJobsT}>💳  {t('walletBalance')}</Text>
+                <Text style={st.walletBal}>PKR {n(balance ?? 0)}</Text>
+              </View>
+              <Text style={st.addLink}>{t('addMoney')}</Text>
+            </Row>
+          </Card>
+
+          <Card onPress={() => navigate('myJobs')} style={{ marginTop: 12 }}>
+            <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+              <View style={{ flex: 1 }}>
+                <Text style={st.myJobsT}>{t('myPostedJobsCard')}</Text>
+                <Text style={st.myJobsS}>{t('myPostedJobsSub')}</Text>
+              </View>
+              <Text style={{ color: colors.green, fontWeight: '800', fontSize: 20 }}>›</Text>
+            </Row>
+          </Card>
 
           <Text style={st.h2}>{t('popularServices')}</Text>
           <View style={st.grid}>
@@ -73,6 +91,7 @@ export default function Home() {
           </View>
 
           <Text style={st.h2}>{t('topWorkers')}</Text>
+          <RadiusPicker value={radius} onChange={setRadius} />
           {workers === null ? <ActivityIndicator color={colors.green} />
             : workers.length === 0 ? (
               <Card><Text style={{ color: colors.sub }}>{t('noWorkersHome')}</Text></Card>
@@ -103,12 +122,14 @@ const st = StyleSheet.create({
   city: { color: '#fff', fontWeight: '700', fontSize: 15 },
   search: { backgroundColor: '#fff', borderRadius: radius.md, paddingHorizontal: 12, paddingVertical: 4, marginTop: 12, gap: 8 },
   searchInput: { flex: 1, paddingVertical: 10, color: colors.text, outlineStyle: 'none' as any },
-  emergency: { backgroundColor: colors.red, borderRadius: radius.md, paddingVertical: 16, alignItems: 'center', marginTop: -4 },
-  emergencyTxt: { color: '#fff', fontWeight: '800', fontSize: 15 },
   trust: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: colors.green50, borderColor: '#bbf7d0',
     borderWidth: 1, borderRadius: radius.md, padding: 14, marginTop: 14 },
   trustT: { fontWeight: '700', color: colors.green700 },
   trustS: { color: colors.sub, fontSize: 12 },
+  myJobsT: { fontWeight: '800', color: colors.text, fontSize: 15 },
+  myJobsS: { color: colors.sub, fontSize: 12, marginTop: 2 },
+  walletBal: { color: colors.green700, fontSize: 20, fontWeight: '800', marginTop: 2 },
+  addLink: { color: colors.green, fontWeight: '700', fontSize: 13 },
   h2: { fontSize: 18, fontWeight: '800', color: colors.text, marginTop: 22, marginBottom: 12 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
   svc: { width: '31%', backgroundColor: '#fff', borderRadius: radius.md, paddingVertical: 16, alignItems: 'center', gap: 6,

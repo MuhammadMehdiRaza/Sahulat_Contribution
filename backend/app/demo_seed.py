@@ -7,7 +7,7 @@ import logging
 
 from .core.database import Base, SessionLocal, engine
 from .core.security import hash_secret
-from .models import HirerProfile, KycVerification, User, Wallet, WorkerLocation, WorkerProfile
+from .models import HirerProfile, KycVerification, User, Wallet, WalletTxn, WorkerLocation, WorkerProfile
 from .seed import run as seed_reference
 
 logging.basicConfig(level=logging.INFO)
@@ -60,6 +60,8 @@ def run() -> None:
             db.add(h)
             db.flush()
             db.add(HirerProfile(user_id=h.id, default_lat=31.5204, default_lng=74.3587, address="Lahore"))
+            db.add(Wallet(user_id=h.id, balance=5000))  # demo customer funded to book right away
+            db.add(WalletTxn(user_id=h.id, amount=5000, direction="credit", type="bonus", memo="Demo balance"))
             log.info("seeded demo hirer (username=customer)")
 
         db.commit()

@@ -6,7 +6,7 @@ import { colors, radius } from '../theme';
 import { Btn, Field, LangToggle } from '../ui';
 
 export default function Signup() {
-  const { navigate, showToast, language, t } = useApp();
+  const { navigate, goBack, canGoBack, showToast, language, t } = useApp();
   const [role, setRole] = useState<'hirer' | 'worker'>('hirer');
   const [fullName, setFullName] = useState('');
   const [username, setUsername] = useState('');
@@ -27,7 +27,12 @@ export default function Signup() {
   return (
     <KeyboardAvoidingView style={{ flex: 1, backgroundColor: colors.green50 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
     <ScrollView style={{ flex: 1 }} contentContainerStyle={s.wrap} keyboardShouldPersistTaps="handled">
-      <View style={s.topBar}><LangToggle /></View>
+      <View style={s.topBar}>
+        {canGoBack ? (
+          <TouchableOpacity onPress={goBack} style={s.backBtn}><Text style={s.backTxt}>‹ {t('back')}</Text></TouchableOpacity>
+        ) : <View />}
+        <LangToggle />
+      </View>
       <View style={s.logo}>
         <Text style={{ fontSize: 46 }}>🇵🇰</Text>
         <Text style={s.brand}>Kaam.pk</Text>
@@ -62,7 +67,9 @@ export default function Signup() {
 
 const s = StyleSheet.create({
   wrap: { padding: 24, paddingTop: 80, justifyContent: 'center', flexGrow: 1 },
-  topBar: { position: 'absolute', top: 44, right: 20, alignItems: 'flex-end' },
+  topBar: { position: 'absolute', top: 44, right: 20, left: 20, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', zIndex: 5 },
+  backBtn: { paddingVertical: 6, paddingHorizontal: 12, borderRadius: radius.pill, backgroundColor: '#fff', borderWidth: 1.2, borderColor: '#bbf7d0' },
+  backTxt: { color: colors.green700, fontWeight: '800', fontSize: 14 },
   logo: { alignItems: 'center', marginBottom: 12 },
   brand: { fontSize: 26, fontWeight: '800', color: colors.green700, marginTop: 4 },
   h2: { fontSize: 22, fontWeight: '800', color: colors.text, textAlign: 'center' },

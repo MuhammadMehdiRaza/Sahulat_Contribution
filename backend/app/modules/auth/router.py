@@ -14,12 +14,25 @@ from ...core.config import settings
 from ...core.database import get_db
 from ...core.deps import get_current_user
 from ...core.security import create_access_token, generate_otp, hash_secret, verify_secret
-from ...models import HirerProfile, OtpCode, User, Wallet, WorkerProfile
+from ...models import HirerProfile, OtpCode, User, Wallet, WalletTxn, WorkerProfile
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 Language = Literal["en", "ur", "roman_ur"]
 Role = Literal["hirer", "worker"]
+WELCOME_BONUS = 1000.0  # new customers get PKR 1000 in their wallet to try the platform
+
+
+def _create_role_profile(db: Session, user: User) -> None:
+    """Role-specific setup on account creation: worker profile+wallet, or hirer wallet+bonus."""
+    if user.role == "worker":
+        db.add(WorkerProfile(user_id=user.id))
+        db.add(Wallet(user_id=user.id, balance=0))
+    else:
+        db.add(HirerProfile(user_id=user.id))
+        db.add(Wallet(user_id=user.id, balance=WELCOME_BONUS))
+        db.add(WalletTxn(user_id=user.id, amount=WELCOME_BONUS, direction="credit",
+                         type="bonus", memo="Welcome bonus"))
 
 
 # -------------------------------------------------------------------- schemas
@@ -142,12 +155,7 @@ def verify(payload: VerifyRequest, db: Session = Depends(get_db)):
         )
         db.add(user)
         db.flush()
-        # role-specific profile + worker wallet
-        if user.role == "worker":
-            db.add(WorkerProfile(user_id=user.id))
-            db.add(Wallet(user_id=user.id, balance=0))
-        else:
-            db.add(HirerProfile(user_id=user.id))
+        _create_role_profile(db, user)
         created = True
     elif payload.language:
         user.language = payload.language
@@ -170,11 +178,7 @@ def signup(payload: SignupRequest, db: Session = Depends(get_db)):
     )
     db.add(user)
     db.flush()
-    if user.role == "worker":
-        db.add(WorkerProfile(user_id=user.id))
-        db.add(Wallet(user_id=user.id, balance=0))
-    else:
-        db.add(HirerProfile(user_id=user.id))
+    _create_role_profile(db, user)
     db.commit()
     return {"ok": True, "username": user.username, "role": user.role}
 

@@ -1,4 +1,10 @@
+def _fund(client, hirer, amount=100000):
+    client.post("/api/v1/payments/me/wallet/topup", headers=hirer["headers"],
+                json={"amount": amount, "provider": "easypaisa"})
+
+
 def _booking(client, hirer, worker, method="escrow_easypaisa", price=2000):
+    _fund(client, hirer)  # ensure the hirer's wallet can cover the escrow hold
     job = client.post("/api/v1/jobs", headers=hirer["headers"], json={
         "category": "plumber", "lat": 31.5, "lng": 74.3, "budget_target": 2000, "budget_max": 3000}).json()
     b = client.post("/api/v1/bookings", headers=hirer["headers"], json={
@@ -39,6 +45,20 @@ def test_rating_updates_worker_reputation(hirer, verified_worker, client):
     prof = client.get(f"/api/v1/profiles/workers/{verified_worker['id']}", headers=hirer["headers"]).json()
     assert prof["rating_avg"] == 5.0
     assert prof["jobs_completed"] == 1
+
+
+def test_booking_exposes_names_category_and_job_link(hirer, verified_worker, client):
+    bid = _booking(client, hirer, verified_worker)
+    # booking detail carries the other party's name + job category for the UI
+    b = client.get(f"/api/v1/bookings/{bid}", headers=hirer["headers"]).json()
+    assert b["worker_name"] == "Verified Worker"
+    assert b["hirer_name"] == "Test Hirer"
+    assert b["category"] == "plumber"
+    # the hirer's job listing links to the booking so "View status" can open it
+    jobs = client.get("/api/v1/jobs", headers=hirer["headers"]).json()
+    linked = next(j for j in jobs if j["id"] == b["job_id"])
+    assert linked["booking_id"] == bid
+    assert linked["status"] == "booked"
 
 
 def test_cancel_refunds_escrow(hirer, verified_worker, client):

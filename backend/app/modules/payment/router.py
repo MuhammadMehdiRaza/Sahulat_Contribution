@@ -1,14 +1,14 @@
-"""PAYMENT module — escrow endpoints, COD fee+PIN, wallet, transactions, webhooks."""
-from typing import List, Optional
+"""PAYMENT module — escrow endpoints, COD fee+PIN, wallet, top-up, transactions, webhooks."""
+from typing import List, Literal, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
 from ...core.database import get_db
 from ...core.deps import get_current_user, require_role
 from ...core.security import generate_pin, hash_secret
-from ...models import Booking, LedgerEntry, Payment, User, Wallet
+from ...models import Booking, Payment, User, Wallet, WalletTxn
 from . import service as pay
 
 router = APIRouter(prefix="/payments", tags=["payment"])
@@ -17,6 +17,11 @@ router = APIRouter(prefix="/payments", tags=["payment"])
 class BookingRef(BaseModel):
     booking_id: str
     provider: Optional[str] = None
+
+
+class TopupIn(BaseModel):
+    amount: float = Field(gt=0, le=500000)
+    provider: Literal["easypaisa", "jazzcash"] = "easypaisa"
 
 
 class PaymentOut(BaseModel):
@@ -44,7 +49,10 @@ def escrow_hold(payload: BookingRef, db: Session = Depends(get_db), user: User =
     booking = _owned_booking(db, payload.booking_id, user)
     if booking.payment_method == "cod":
         raise HTTPException(409, "COD bookings do not use escrow")
-    res = pay.hold_escrow(db, booking)
+    try:
+        res = pay.hold_escrow(db, booking)
+    except pay.InsufficientFunds:
+        raise HTTPException(402, "Insufficient wallet balance")
     db.commit()
     return {"booking_id": booking.id, **res}
 
@@ -75,19 +83,29 @@ def cod_collect_fee(payload: BookingRef, db: Session = Depends(get_db), user: Us
 
 
 @router.get("/me/wallet")
-def my_wallet(db: Session = Depends(get_db), user: User = Depends(require_role("worker"))):
+def my_wallet(db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    """Wallet balance + transaction history (both customers and workers have a wallet)."""
     wallet = db.query(Wallet).filter(Wallet.user_id == user.id).first()
-    ledger = (
-        db.query(LedgerEntry)
-        .join(Booking, Booking.id == LedgerEntry.booking_id)
-        .filter(Booking.worker_id == user.id, LedgerEntry.account == "worker_balance")
-        .order_by(LedgerEntry.created_at.desc())
-        .all()
+    txns = (
+        db.query(WalletTxn).filter(WalletTxn.user_id == user.id)
+        .order_by(WalletTxn.created_at.desc()).limit(50).all()
     )
     return {
         "balance": wallet.balance if wallet else 0,
-        "ledger": [{"amount": e.amount, "memo": e.memo, "direction": e.direction} for e in ledger],
+        "transactions": [
+            {"amount": t.amount, "direction": t.direction, "type": t.type, "memo": t.memo,
+             "created_at": t.created_at.isoformat() if t.created_at else None}
+            for t in txns
+        ],
     }
+
+
+@router.post("/me/wallet/topup")
+def topup(payload: TopupIn, db: Session = Depends(get_db), user: User = Depends(get_current_user)):
+    """Add money to the wallet from EasyPaisa/JazzCash (mock credits instantly in demo)."""
+    res = pay.topup_wallet(db, user.id, round(payload.amount, 2), payload.provider)
+    db.commit()
+    return {"ok": True, "balance": pay.balance_of(db, user.id), "provider_ref": res["provider_ref"]}
 
 
 @router.get("/bookings/{booking_id}/transactions", response_model=List[PaymentOut])

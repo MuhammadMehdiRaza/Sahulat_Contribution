@@ -4,10 +4,9 @@ import { api } from '../api';
 import { useApp } from '../state';
 import { colors, radius } from '../theme';
 import { Badge, Btn, Card, Field, Header, Row, Screen } from '../ui';
-import { LAT, LNG } from './Home';
 
 export default function Bidding() {
-  const { params, navigate, goBack, showToast, t, n } = useApp();
+  const { params, navigate, goBack, showToast, coords, t, n } = useApp();
   const worker = params.worker;
   const workerId = worker?.user_id || worker?.worker_id;
   const [target, setTarget] = useState(String(params.job?.budget_target || 2000));
@@ -22,8 +21,8 @@ export default function Bidding() {
       let jid = jobId;
       if (!jid) {
         const cat = (worker?.skills && worker.skills[0]) || 'plumber';
-        const job = await api.createJob({ category: cat, description: 'AI-negotiated job', lat: LAT, lng: LNG,
-          address: 'Lahore', budget_target: Number(target), budget_max: Number(max) });
+        const job = await api.createJob({ category: cat, description: 'AI-negotiated job', lat: coords.lat, lng: coords.lng,
+          address: 'My location', budget_target: Number(target), budget_max: Number(max) });
         jid = job.id; setJobId(job.id);
       }
       const r = await api.startBid({
@@ -40,6 +39,13 @@ export default function Bidding() {
   const proceed = () => navigate('bookingPayment', {
     worker, job: { id: jobId }, agreed_price: result.final_price, session_id: result.id,
   });
+
+  const discussChat = async () => {
+    try {
+      const th = await api.createThread({ peer_id: workerId, job_id: jobId });
+      navigate('chat', { threadId: th.id, peerName: worker?.full_name });
+    } catch (e: any) { showToast(e.message); }
+  };
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
@@ -81,6 +87,11 @@ export default function Bidding() {
               ? <Btn title={t('continuePay', { price: n(result.final_price) })} onPress={proceed} style={{ marginTop: 8 }} />
               : <Btn title={t('bookManual')} variant="outline" style={{ marginTop: 8 }}
                   onPress={() => navigate('bookingPayment', { worker, job: { id: jobId }, agreed_price: Number(max) })} />}
+
+            <View style={st.discuss}>
+              <Text style={st.discussTxt}>{t('discussPriceHint')}</Text>
+            </View>
+            <Btn title={t('discussChat')} variant="outline" style={{ marginTop: 10 }} onPress={discussChat} />
           </>
         )}
       </Screen>
@@ -97,4 +108,6 @@ const st = StyleSheet.create({
   round: { fontWeight: '700', color: colors.text },
   gap: { color: colors.sub, fontSize: 12 },
   offer: { color: colors.text, fontSize: 13 },
+  discuss: { backgroundColor: '#eff6ff', borderRadius: radius.md, padding: 12, marginTop: 14 },
+  discussTxt: { color: '#1d4ed8', fontSize: 12, lineHeight: 18 },
 });

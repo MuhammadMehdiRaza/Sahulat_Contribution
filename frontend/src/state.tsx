@@ -1,8 +1,13 @@
 // App-wide auth + navigation state (mirrors the Figma App.tsx state-machine navigator).
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
+import * as Location from 'expo-location';
 import { api, setAuthToken } from './api';
 import { isRTL, Lang, localizeNum, makeT } from './i18n';
 
+// Default coordinates (Lahore) used only until the device reports a real GPS fix.
+export const DEFAULT_COORDS = { lat: 31.5204, lng: 74.3587 };
+
+type Coords = { lat: number; lng: number };
 type NavEntry = { screen: string; params: any };
 type Ctx = {
   token: string | null;
@@ -22,6 +27,12 @@ type Ctx = {
   t: (key: string, vars?: Record<string, string | number>) => string;
   n: (v: string | number) => string;
   rtl: boolean;
+  coords: Coords;
+  place: string;               // human-readable city/country from reverse geocoding
+  locating: boolean;
+  gotReal: boolean;            // true once a real GPS fix replaced the default
+  locationDenied: boolean;     // permission permanently denied (send user to settings)
+  refreshLocation: () => void;
 };
 
 const AppCtx = createContext<Ctx>(null as any);
@@ -35,6 +46,42 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [history, setHistory] = useState<NavEntry[]>([]);
   const [toast, setToast] = useState<string | null>(null);
   const [language, setLanguageState] = useState<Lang>('en');
+  const [coords, setCoords] = useState<Coords>(DEFAULT_COORDS);
+  const [place, setPlace] = useState('Lahore');
+  const [locating, setLocating] = useState(true);
+  const [gotReal, setGotReal] = useState(false);
+  const [locationDenied, setLocationDenied] = useState(false);
+
+  // Resolve the user's real location (falls back to Lahore if denied/unavailable), so
+  // matching/posting use where the user actually is — not a hardcoded city. Re-runnable.
+  const refreshLocation = useCallback(async () => {
+    setLocating(true);
+    try {
+      let perm = await Location.getForegroundPermissionsAsync();
+      if (perm.status !== 'granted') perm = await Location.requestForegroundPermissionsAsync();
+      if (perm.status !== 'granted') { setLocationDenied(!perm.canAskAgain); return; }
+      setLocationDenied(false);
+      const pos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+      if (pos?.coords) {
+        const lat = pos.coords.latitude, lng = pos.coords.longitude;
+        setCoords({ lat, lng });
+        setGotReal(true);
+        // On-device reverse geocoding — turns GPS into a city/country name (no API key).
+        try {
+          const geo = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lng });
+          const g = geo && geo[0];
+          if (g) {
+            const city = g.city || g.subregion || g.district || g.region || '';
+            const label = [city, g.country].filter(Boolean).join(', ');
+            if (label) setPlace(label);
+          }
+        } catch { /* reverse geocoding not available (e.g. web) — keep coordinates-based flow */ }
+      }
+    } catch { /* keep the current coordinates */ }
+    finally { setLocating(false); }
+  }, []);
+
+  useEffect(() => { refreshLocation(); }, [refreshLocation]);
 
   const navigate = useCallback((s: string, p: any = {}) => {
     setHistory((h) => [...h, { screen, params }]);
@@ -114,7 +161,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   return (
     <AppCtx.Provider
       value={{ token, user, screen, params, navigate, goBack, canGoBack: history.length > 0,
-        login, setUser: setUserState, logout, toast, showToast, language, setLanguage, t, n, rtl }}
+        login, setUser: setUserState, logout, toast, showToast, language, setLanguage, t, n, rtl,
+        coords, place, locating, gotReal, locationDenied, refreshLocation }}
     >
       {children}
     </AppCtx.Provider>

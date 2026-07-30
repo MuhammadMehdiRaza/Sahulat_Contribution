@@ -35,6 +35,7 @@ export default function Settings() {
           ))}
         </Card>
 
+        <Card onPress={() => navigate('wallet')}><Text style={st.row}>{t('walletRow')}</Text></Card>
         <Card onPress={() => navigate('notifications')}><Text style={st.row}>{t('notificationsRow')}</Text></Card>
         <Card onPress={() => navigate('bookings')}><Text style={st.row}>{t('myBookings')}</Text></Card>
         {user?.role === 'worker'

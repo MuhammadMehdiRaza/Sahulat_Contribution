@@ -15,6 +15,7 @@ from ...core.deps import get_current_user, require_role
 from ...models import BidRound, Booking, Job, NegotiationSession, User, WorkerProfile
 from ..booking.service import create_booking
 from ..notifications.service import notify
+from ..payment import service as pay
 from .engine import run_negotiation
 
 router = APIRouter(prefix="/bidding", tags=["bidding"])
@@ -132,8 +133,11 @@ def accept(session_id: str, db: Session = Depends(get_db), user: User = Depends(
     if db.query(Booking).filter(Booking.session_id == session.id).first():
         raise HTTPException(409, "Session already booked")
     job = db.get(Job, session.job_id)
-    booking = create_booking(db, job=job, worker_id=session.worker_id, agreed_price=session.final_price,
-                             payment_method="escrow_easypaisa", session_id=session.id)
+    try:
+        booking = create_booking(db, job=job, worker_id=session.worker_id, agreed_price=session.final_price,
+                                 payment_method="escrow_easypaisa", session_id=session.id)
+    except pay.InsufficientFunds:
+        raise HTTPException(402, "Insufficient wallet balance. Please top up your wallet and try again.")
     notify(db, session.worker_id, "booking_offer", "Booking created",
            f"Booking pending your approval at PKR {session.final_price}.", {"booking_id": booking.id})
     db.commit()

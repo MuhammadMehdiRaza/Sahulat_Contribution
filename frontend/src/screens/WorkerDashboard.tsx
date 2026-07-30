@@ -4,15 +4,15 @@ import { api } from '../api';
 import BottomNav from '../BottomNav';
 import { useApp } from '../state';
 import { colors } from '../theme';
-import { Badge, Btn, Card, Header, Row, Screen, TaskBanner } from '../ui';
-import { LAT, LNG } from './Home';
+import { Badge, Btn, Card, Header, LocationBanner, RadiusPicker, Row, Screen, TaskBanner } from '../ui';
 
 export default function WorkerDashboard() {
-  const { user, navigate, showToast, t, n } = useApp();
+  const { user, navigate, showToast, coords, t, n } = useApp();
   const [profile, setProfile] = useState<any | null>(null);
   const [kyc, setKyc] = useState<any | null>(null);
   const [wallet, setWallet] = useState<any | null>(null);
   const [jobs, setJobs] = useState<any[]>([]);
+  const [radius, setRadius] = useState(15);
   const [pending, setPending] = useState(0);
   const available = profile?.availability === 'available';
   const verified = kyc?.badges?.cnic;
@@ -21,18 +21,19 @@ export default function WorkerDashboard() {
     try { setProfile(await api.myProfile()); } catch {}
     try { setKyc(await api.kycStatus()); } catch {}
     try { setWallet(await api.wallet()); } catch {}
-    try { setJobs(await api.nearbyJobs(LAT, LNG, 15)); } catch {}
     try {
       const bs = await api.listBookings();
       setPending(bs.filter((b: any) => ['pending_approval', 'confirmed', 'in_progress'].includes(b.status)).length);
     } catch {}
   };
+  const loadJobs = async () => { try { setJobs(await api.nearbyJobs(coords.lat, coords.lng, radius)); } catch {} };
   useEffect(() => { load(); }, []);
+  useEffect(() => { loadJobs(); }, [radius, coords.lat, coords.lng]);
 
   const toggle = async (val: boolean) => {
     try {
       await api.setAvailability(val ? 'available' : 'offline');
-      if (val) await api.recordLocation(LAT, LNG);
+      if (val) await api.recordLocation(coords.lat, coords.lng);
       setProfile((p: any) => ({ ...p, availability: val ? 'available' : 'offline' }));
       showToast(val ? t('nowAvailable') : t('nowOffline'));
     } catch (e: any) { showToast(e.message); }
@@ -42,6 +43,7 @@ export default function WorkerDashboard() {
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <Header title={t('dashGreeting', { name: user?.full_name?.split(' ')[0] || t('worker') })} subtitle={t('workerDash')} />
       <Screen>
+        <LocationBanner />
         {/* Task-driven banners: the worker sees exactly what to do next */}
         {!verified && <TaskBanner icon="🪪" tone="amber" title={t('bannerKycTitle')} subtitle={t('bannerKycSub')} action={t('confirm')} onAction={() => navigate('kyc')} />}
         {verified && !available && <TaskBanner icon="📡" tone="blue" title={t('bannerOfflineTitle')} subtitle={t('bannerOfflineSub')} action={t('goOnline')} onAction={() => toggle(true)} />}
@@ -70,15 +72,19 @@ export default function WorkerDashboard() {
         </Row>
 
         <Text style={st.section}>{t('nearbyJobsLbl')}</Text>
+        <RadiusPicker value={radius} onChange={setRadius} />
         {jobs.length === 0 ? <Card><Text style={{ color: colors.sub }}>{t('noJobsNearby')}</Text></Card>
           : jobs.map((j) => (
-            <Card key={j.id}>
+            <Card key={j.id} onPress={() => navigate('jobDetail', { job: j })}>
               <Row style={{ justifyContent: 'space-between' }}>
                 <Text style={st.jobCat}>{t('svc_' + j.category)}</Text>
                 <Badge label={`${n(j.distance_km)} km`} bg="#e0f2fe" color="#0369a1" />
               </Row>
               <Text style={{ color: colors.sub, marginTop: 4 }}>{j.description || ''}</Text>
-              <Text style={st.budget}>PKR {n(j.budget_target)}–{n(j.budget_max)}</Text>
+              <Row style={{ justifyContent: 'space-between', alignItems: 'center', marginTop: 6 }}>
+                <Text style={st.budget}>PKR {n(j.budget_target)}–{n(j.budget_max)}</Text>
+                {j.my_interest ? <Badge label={t('interestSentBtn')} bg="#dcfce7" color={colors.green700} /> : null}
+              </Row>
             </Card>
           ))}
         <Btn title={t('viewBookings')} variant="outline" style={{ marginTop: 6 }} onPress={() => navigate('bookings')} />

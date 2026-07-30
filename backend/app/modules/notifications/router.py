@@ -19,6 +19,7 @@ class NotificationOut(BaseModel):
     body: str
     data: dict
     read_at: Optional[str] = None
+    created_at: Optional[str] = None
     model_config = {"from_attributes": True}
 
 
@@ -32,7 +33,8 @@ def list_notifications(db: Session = Depends(get_db), user: User = Depends(get_c
     rows = db.query(Notification).filter(Notification.user_id == user.id).order_by(Notification.created_at.desc()).all()
     return [
         NotificationOut(id=n.id, type=n.type, title=n.title, body=n.body, data=n.data or {},
-                        read_at=n.read_at.isoformat() if n.read_at else None)
+                        read_at=n.read_at.isoformat() if n.read_at else None,
+                        created_at=n.created_at.isoformat() if n.created_at else None)
         for n in rows
     ]
 

@@ -1,19 +1,23 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { api } from '../api';
 import { useApp } from '../state';
 import { colors, paymentMethods, radius } from '../theme';
 import { Btn, Card, Header, Row, Screen } from '../ui';
-import { LAT, LNG } from './Home';
 
 export default function BookingPayment() {
-  const { params, navigate, goBack, showToast, t, n } = useApp();
+  const { params, navigate, goBack, showToast, coords, t, n } = useApp();
   const worker = params.worker;
   const workerId = worker?.user_id || worker?.worker_id;
   const price = Number(params.agreed_price || worker?.rate_target || 2000);
   const fee = Math.round(price * 0.1 * 100) / 100;
   const [method, setMethod] = useState('escrow_easypaisa');
   const [loading, setLoading] = useState(false);
+  const [balance, setBalance] = useState<number | null>(null);
+
+  useEffect(() => { api.wallet().then((w) => setBalance(w.balance)).catch(() => {}); }, []);
+  const usesWallet = method !== 'cod';
+  const insufficient = usesWallet && balance != null && balance < price;
 
   const confirm = async () => {
     setLoading(true);
@@ -21,8 +25,8 @@ export default function BookingPayment() {
       let jobId = params.job?.id;
       if (!jobId) {
         const cat = (worker?.skills && worker.skills[0]) || 'plumber';
-        const job = await api.createJob({ category: cat, description: 'Direct booking', lat: LAT, lng: LNG,
-          address: 'Lahore', budget_target: price, budget_max: price });
+        const job = await api.createJob({ category: cat, description: 'Direct booking', lat: coords.lat, lng: coords.lng,
+          address: 'My location', budget_target: price, budget_max: price });
         jobId = job.id;
       }
       const booking = await api.createBooking({
@@ -31,7 +35,12 @@ export default function BookingPayment() {
       });
       showToast(t('bookingCreated'));
       navigate('bookings', { highlight: booking.id });
-    } catch (e: any) { showToast(e.message); } finally { setLoading(false); }
+    } catch (e: any) {
+      const msg = e.message || '';
+      if (msg.toLowerCase().includes('already has a booking')) { showToast(t('bookingExists')); navigate('bookings'); }
+      else if (msg.toLowerCase().includes('insufficient')) { showToast(t('insufficientWarn')); navigate('wallet'); }
+      else showToast(msg);
+    } finally { setLoading(false); }
   };
 
   return (
@@ -58,7 +67,21 @@ export default function BookingPayment() {
           <Text style={st.infoTxt}>{method === 'cod' ? t('codInfo') : t('escrowInfo')}</Text>
         </View>
 
-        <Btn title={t('confirmBookingBtn')} onPress={confirm} loading={loading} />
+        {usesWallet ? (
+          <Row style={[st.walletRow, insufficient && { borderColor: '#fecaca', backgroundColor: '#fef2f2' }]}>
+            <Text style={{ fontSize: 18 }}>💳</Text>
+            <Text style={st.walletTxt}>{t('paidFromWallet')} · {t('walletBalance')}: PKR {n(balance ?? 0)}</Text>
+          </Row>
+        ) : null}
+
+        {insufficient ? (
+          <>
+            <Text style={st.warn}>{t('insufficientWarn')}</Text>
+            <Btn title={t('addMoney')} onPress={() => navigate('wallet')} />
+          </>
+        ) : (
+          <Btn title={t('confirmBookingBtn')} onPress={confirm} loading={loading} />
+        )}
       </Screen>
     </View>
   );
@@ -76,4 +99,7 @@ const st = StyleSheet.create({
   tick: { marginStart: 'auto', color: colors.green, fontWeight: '800' },
   info: { backgroundColor: '#eff6ff', borderRadius: radius.md, padding: 12, marginBottom: 16 },
   infoTxt: { color: '#1d4ed8', fontSize: 12, lineHeight: 18 },
+  walletRow: { gap: 10, backgroundColor: colors.green50, borderColor: '#bbf7d0', borderWidth: 1, borderRadius: radius.md, padding: 12, marginBottom: 12 },
+  walletTxt: { color: colors.green700, fontWeight: '600', fontSize: 13, flex: 1 },
+  warn: { color: colors.redDark, fontWeight: '600', fontSize: 13, marginBottom: 10, textAlign: 'center' },
 });

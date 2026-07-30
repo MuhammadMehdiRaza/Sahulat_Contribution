@@ -10,8 +10,30 @@ from .core.database import Base, engine
 logging.basicConfig(level=settings.log_level)
 
 
+def _light_migrations() -> None:
+    """Add columns introduced after the first release to already-existing dev DBs.
+
+    create_all() creates new *tables* but never alters existing ones; this keeps a
+    developer's SQLite file working without a manual reset (Alembic covers production).
+    """
+    from sqlalchemy import inspect, text
+
+    insp = inspect(engine)
+    if "chat_threads" in insp.get_table_names():
+        cols = {c["name"] for c in insp.get_columns("chat_threads")}
+        if "job_id" not in cols:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE chat_threads ADD COLUMN job_id VARCHAR(36)"))
+    if "jobs" in insp.get_table_names():
+        cols = {c["name"] for c in insp.get_columns("jobs")}
+        if "deadline" not in cols:
+            with engine.begin() as conn:
+                conn.execute(text("ALTER TABLE jobs ADD COLUMN deadline DATETIME"))
+
+
 def create_app() -> FastAPI:
     Base.metadata.create_all(bind=engine)
+    _light_migrations()
     app = FastAPI(title="Sahulat / KaamConnect API", version="0.1.0")
 
     # CORS: allow the mobile/web client to call the API (bearer tokens, no cookies).

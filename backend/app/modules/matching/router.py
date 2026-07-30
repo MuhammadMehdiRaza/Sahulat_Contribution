@@ -18,6 +18,7 @@ from ...core.utils import haversine_km
 from ...models import Job, User, WorkerLocation, WorkerProfile
 from ..booking.service import create_booking
 from ..notifications.service import notify
+from ..payment import service as pay
 
 router = APIRouter(prefix="/matching", tags=["matching"])
 
@@ -116,8 +117,11 @@ def emergency_dispatch(payload: EmergencyIn, db: Session = Depends(get_db), user
         raise HTTPException(404, "No active worker within emergency radius")
     wp, worker, dist, _score = rows[0]  # nearest/highest-ranked
     price = job.budget_max or job.budget_target or 0
-    booking = create_booking(db, job=job, worker_id=wp.user_id, agreed_price=price,
-                             payment_method="escrow_easypaisa")
+    try:
+        booking = create_booking(db, job=job, worker_id=wp.user_id, agreed_price=price,
+                                 payment_method="escrow_easypaisa")
+    except pay.InsufficientFunds:
+        raise HTTPException(402, "Insufficient wallet balance. Please top up your wallet and try again.")
     notify(db, wp.user_id, "emergency_dispatch", "Emergency job",
            f"You have been dispatched for an emergency {job.category}.", {"booking_id": booking.id})
     db.commit()

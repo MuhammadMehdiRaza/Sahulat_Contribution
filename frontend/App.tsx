@@ -22,12 +22,18 @@ import Kyc from './src/screens/Kyc';
 import Settings from './src/screens/Settings';
 import Bookings from './src/screens/Bookings';
 import Notifications from './src/screens/Notifications';
+import JobDetail from './src/screens/JobDetail';
+import MyJobs from './src/screens/MyJobs';
+import JobApplicants from './src/screens/JobApplicants';
+import BookingDetail from './src/screens/BookingDetail';
+import Wallet from './src/screens/Wallet';
 
 const SCREENS: Record<string, any> = {
   onboarding: Onboarding, login: Login, signup: Signup, forgotPassword: ForgotPassword, home: Home, serviceListing: ServiceListing,
   workerProfile: WorkerProfile, postJob: PostJob, bidding: Bidding, bookingPayment: BookingPayment,
   chat: Chat, rating: Rating, workerDashboard: WorkerDashboard, kyc: Kyc, settings: Settings,
   bookings: Bookings, notifications: Notifications,
+  jobDetail: JobDetail, myJobs: MyJobs, jobApplicants: JobApplicants, bookingDetail: BookingDetail, wallet: Wallet,
 };
 
 function Router() {

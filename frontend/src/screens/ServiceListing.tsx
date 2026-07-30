@@ -4,27 +4,32 @@ import { api } from '../api';
 import { useApp } from '../state';
 import { colors } from '../theme';
 import { Badge, Btn, Card, Header, Row, Screen } from '../ui';
-import { LAT, LNG } from './Home';
 
 export default function ServiceListing() {
-  const { params, navigate, goBack, t, n } = useApp();
+  const { params, navigate, goBack, coords, t, n } = useApp();
   const category = params.category;
+  const justPosted = !!params.job;   // arrived here right after posting a job
   const [workers, setWorkers] = useState<any[] | null>(null);
 
   useEffect(() => {
     (async () => {
-      try { setWorkers(await api.matchWorkers(LAT, LNG, category, 15)); } catch { setWorkers([]); }
+      try { setWorkers(await api.matchWorkers(coords.lat, coords.lng, category, 15)); } catch { setWorkers([]); }
     })();
-  }, [category]);
+  }, [category, coords.lat, coords.lng]);
 
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <Header title={t('workersNear', { cat: t('svc_' + category) })} subtitle={t('within15')} onBack={goBack} />
       <Screen>
-        <Btn title={t('postJobInstead')} variant="outline" onPress={() => navigate('postJob', { category })} style={{ marginBottom: 14 }} />
+        {justPosted
+          ? <Card style={{ backgroundColor: colors.green50, borderColor: '#bbf7d0' }}>
+              <Text style={{ color: colors.green700, fontWeight: '700' }}>{t('jobLiveTitle')}</Text>
+              <Text style={{ color: colors.sub, marginTop: 4, fontSize: 13 }}>{t('jobLiveSub')}</Text>
+            </Card>
+          : <Btn title={t('postJobInstead')} variant="outline" onPress={() => navigate('postJob', { category })} style={{ marginBottom: 14 }} />}
         {workers === null ? <ActivityIndicator color={colors.green} />
           : workers.length === 0 ? (
-            <Card><Text style={{ color: colors.sub }}>{t('noWorkersCat', { cat: t('svc_' + category) })}</Text></Card>
+            <Card><Text style={{ color: colors.sub }}>{t(justPosted ? 'noWorkersPosted' : 'noWorkersCat', { cat: t('svc_' + category) })}</Text></Card>
           ) : workers.map((w) => (
             <Card key={w.worker_id} onPress={() => navigate('workerProfile', { worker: w })}>
               <Row style={{ justifyContent: 'space-between' }}>

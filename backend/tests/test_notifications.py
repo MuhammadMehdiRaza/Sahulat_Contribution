@@ -1,4 +1,6 @@
 def _make_booking_notification(client, hirer, worker):
+    client.post("/api/v1/payments/me/wallet/topup", headers=hirer["headers"],
+                json={"amount": 100000, "provider": "easypaisa"})  # fund the escrow hold
     job = client.post("/api/v1/jobs", headers=hirer["headers"], json={
         "category": "plumber", "lat": 31.5, "lng": 74.3, "budget_target": 2000, "budget_max": 3000}).json()
     client.post("/api/v1/bookings", headers=hirer["headers"], json={

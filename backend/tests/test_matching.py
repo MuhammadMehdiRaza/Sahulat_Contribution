@@ -28,6 +28,7 @@ def test_match_excludes_unavailable(hirer, verified_worker, client):
 
 
 def test_emergency_dispatch_creates_booking(hirer, verified_worker, client):
+    client.post("/api/v1/payments/me/wallet/topup", headers=hirer["headers"], json={"amount": 100000, "provider": "easypaisa"})
     job = _job(client, hirer, is_emergency=True)
     r = client.post("/api/v1/matching/emergency", headers=hirer["headers"], json={"job_id": job["id"]})
     assert r.status_code == 200

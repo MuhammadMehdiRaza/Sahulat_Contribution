@@ -1,93 +1,84 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, Text, TextInput, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { api } from '../api';
 import BottomNav from '../BottomNav';
+import { fmtDate, isPast } from '../dates';
 import { useApp } from '../state';
-import { colors, radius } from '../theme';
-import { Badge, Btn, Card, EmptyState, Header, Row, Screen, StatusTimeline, TaskBanner } from '../ui';
+import { colors } from '../theme';
+import { Badge, Card, EmptyState, Header, Row, Screen } from '../ui';
 
-const STEP_INDEX: Record<string, number> = { pending_approval: 0, confirmed: 1, in_progress: 2, completed: 3 };
+const ACTIVE = ['pending_approval', 'confirmed', 'in_progress'];
+
+function statusChip(status: string, t: any) {
+  const map: Record<string, { label: string; bg: string; fg: string }> = {
+    pending_approval: { label: t('stPending'), bg: '#fef3c7', fg: '#92400e' },
+    confirmed: { label: t('stConfirmed'), bg: '#e0f2fe', fg: '#0369a1' },
+    in_progress: { label: t('stInProgress'), bg: '#dbeafe', fg: '#1d4ed8' },
+    completed: { label: t('stCompleted'), bg: '#dcfce7', fg: colors.green700 },
+    cancelled: { label: t('cancel'), bg: '#fee2e2', fg: colors.redDark },
+  };
+  return map[status] || { label: status, bg: '#f1f5f9', fg: colors.sub };
+}
 
 export default function Bookings() {
-  const { user, navigate, showToast, t, n } = useApp();
+  const { user, navigate, t, n } = useApp();
   const [items, setItems] = useState<any[] | null>(null);
   const load = async () => { try { setItems(await api.listBookings()); } catch { setItems([]); } };
   useEffect(() => { load(); }, []);
 
+  const isWorker = user?.role === 'worker';
+  const active = (items || []).filter((b) => ACTIVE.includes(b.status));
+  const past = (items || []).filter((b) => !ACTIVE.includes(b.status));
+
+  const card = (b: any) => {
+    const s = statusChip(b.status, t);
+    const peer = isWorker ? b.hirer_name : b.worker_name;
+    return (
+      <Card key={b.id} onPress={() => navigate('bookingDetail', { booking: b })}>
+        <Row style={{ justifyContent: 'space-between' }}>
+          <Text style={st.cat}>{b.category ? t('svc_' + b.category) : t('navBookings')}</Text>
+          <Badge label={s.label} bg={s.bg} color={s.fg} />
+        </Row>
+        {peer ? <Text style={st.peer}>{t('withPeer', { name: peer })}</Text> : null}
+        {b.created_at ? <Text style={st.date}>📅 {fmtDate(b.created_at)}</Text> : null}
+        {b.deadline && ACTIVE.includes(b.status) ? (
+          <Text style={[st.date, isPast(b.deadline) && { color: colors.redDark, fontWeight: '700' }]}>
+            ⏰ {isPast(b.deadline) ? t('overdue') : t('dueBy', { date: fmtDate(b.deadline) })}
+          </Text>
+        ) : null}
+        <Row style={{ justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
+          <Text style={st.price}>PKR {n(b.agreed_price)}</Text>
+          <Text style={st.link}>{t('viewStatus')}</Text>
+        </Row>
+      </Card>
+    );
+  };
+
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
-      <Header title={t('navBookings')} subtitle={user?.role === 'worker' ? t('bookingsTitleW') : t('bookingsTitleH')} />
+      <Header title={t('navBookings')} subtitle={isWorker ? t('bookingsTitleW') : t('bookingsTitleH')} />
       <Screen>
-        {items === null ? null : items.length === 0
-          ? <EmptyState icon="📋" title={t('noBookings')} />
-          : items.map((b) => <BookingCard key={b.id} b={b} role={user.role} reload={load} navigate={navigate} showToast={showToast} t={t} n={n} />)}
+        {items === null ? null : items.length === 0 ? (
+          <EmptyState icon="📋" title={t('noBookings')} />
+        ) : (
+          <>
+            {active.length > 0 && <Text style={st.section}>{t('bookingsActive')}</Text>}
+            {active.map(card)}
+            {past.length > 0 && <Text style={st.section}>{t('bookingsPast')}</Text>}
+            {past.map(card)}
+          </>
+        )}
       </Screen>
       <BottomNav active="bookings" />
     </View>
   );
 }
 
-function nextStep(b: any, isWorker: boolean, t: any) {
-  if (b.status === 'cancelled') return null;
-  if (isWorker) {
-    if (b.status === 'pending_approval') return { tone: 'amber', text: t('nextWorkerConfirm') };
-    if (b.status === 'confirmed') return { tone: 'blue', text: t('nextWorkerStart') };
-    if (b.status === 'in_progress') return { tone: 'blue', text: t('nextWorkerComplete') };
-  } else {
-    if (b.status === 'pending_approval') return { tone: 'amber', text: t('nextHirerWait') };
-    if (b.status === 'confirmed') return b.payment_method === 'cod' ? { tone: 'amber', text: t('nextHirerCod') } : { tone: 'blue', text: t('nextHirerProgress') };
-    if (b.status === 'in_progress') return { tone: 'blue', text: t('nextHirerProgress') };
-    if (b.status === 'completed') return { tone: 'green', text: t('nextHirerRate') };
-  }
-  return null;
-}
-
-function BookingCard({ b, role, reload, navigate, showToast, t, n }: any) {
-  const [pin, setPin] = useState('');
-  const [busy, setBusy] = useState(false);
-  const isWorker = role === 'worker';
-  const act = async (fn: () => Promise<any>) => {
-    setBusy(true);
-    try { await fn(); await reload(); } catch (e: any) { showToast(e.message); } finally { setBusy(false); }
-  };
-  const hint = nextStep(b, isWorker, t);
-  const timelineSteps = [{ label: t('stPending') }, { label: t('stConfirmed') }, { label: t('stInProgress') }, { label: t('stCompleted') }];
-
-  return (
-    <Card>
-      <Row style={{ justifyContent: 'space-between', marginBottom: 12 }}>
-        <Text style={st.title}>PKR {n(b.agreed_price)}</Text>
-        <Badge label={b.payment_method.replace('_', ' ')} bg="#f1f5f9" color={colors.sub} />
-      </Row>
-
-      {b.status === 'cancelled'
-        ? <Badge label={t('cancel')} bg="#fee2e2" color={colors.redDark} />
-        : <StatusTimeline steps={timelineSteps} current={STEP_INDEX[b.status] ?? 0} />}
-
-      {hint ? <View style={{ marginTop: 14 }}><TaskBanner icon="ℹ️" tone={hint.tone} title={hint.text} /></View> : null}
-
-      {isWorker && b.status === 'pending_approval' && <Btn title={t('confirmBooking')} onPress={() => act(() => api.confirmBooking(b.id))} loading={busy} />}
-      {isWorker && b.status === 'confirmed' && <Btn title={t('startJob')} onPress={() => act(() => api.startBooking(b.id))} loading={busy} />}
-      {isWorker && b.status === 'in_progress' && b.payment_method === 'cod' && (
-        <View>
-          <TextInput value={pin} onChangeText={setPin} placeholder={t('enterPin')} placeholderTextColor={colors.muted} style={st.pin} keyboardType="number-pad" />
-          <Btn title={t('completePin')} onPress={() => act(() => api.completeBooking(b.id, pin))} loading={busy} />
-        </View>
-      )}
-      {isWorker && b.status === 'in_progress' && b.payment_method !== 'cod' &&
-        <Btn title={t('completeEscrow')} onPress={() => act(() => api.completeBooking(b.id))} loading={busy} />}
-
-      {!isWorker && b.status === 'confirmed' && b.payment_method === 'cod' &&
-        <Btn title={t('collectCod')} onPress={() => act(async () => { const r = await api.codCollectFee(b.id); showToast(t('releasePin', { pin: r.release_pin })); })} loading={busy} />}
-      {!isWorker && b.status === 'completed' && <Btn title={t('rateWorkerBtn')} onPress={() => navigate('rating', { booking: b })} />}
-
-      {(b.status === 'pending_approval' || b.status === 'confirmed') &&
-        <Btn title={t('cancel')} variant="outline" style={{ marginTop: 10 }} onPress={() => act(() => api.cancelBooking(b.id, 'cancelled by user'))} loading={busy} />}
-    </Card>
-  );
-}
-
 const st = StyleSheet.create({
-  title: { fontSize: 18, fontWeight: '800', color: colors.text },
-  pin: { borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, paddingHorizontal: 14, paddingVertical: 12, marginBottom: 10, outlineStyle: 'none' as any },
+  section: { fontSize: 14, fontWeight: '800', color: colors.sub, marginTop: 10, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.4 },
+  cat: { fontSize: 16, fontWeight: '800', color: colors.text },
+  peer: { color: colors.sub, marginTop: 3 },
+  date: { color: colors.muted, fontSize: 12, marginTop: 4 },
+  price: { fontSize: 17, fontWeight: '800', color: colors.text },
+  link: { color: colors.green, fontWeight: '700', fontSize: 13 },
 });

@@ -8,6 +8,7 @@ import { Btn, Card, Field, Header, Screen } from '../ui';
 export default function Rating() {
   const { params, navigate, goBack, showToast, t } = useApp();
   const booking = params.booking;
+  const ratingCustomer = params.rateeRole === 'hirer';
   const [stars, setStars] = useState(5);
   const [comment, setComment] = useState('');
   const [loading, setLoading] = useState(false);
@@ -26,7 +27,7 @@ export default function Rating() {
       <Header title={t('ratingTitle')} onBack={goBack} />
       <Screen>
         <Card>
-          <Text style={st.q}>{t('howWasService')}</Text>
+          <Text style={st.q}>{ratingCustomer ? t('howWasCustomer') : t('howWasService')}</Text>
           <View style={st.stars}>
             {[1, 2, 3, 4, 5].map((n) => (
               <TouchableOpacity key={n} onPress={() => setStars(n)}>

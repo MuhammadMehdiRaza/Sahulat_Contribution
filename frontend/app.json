@@ -20,6 +20,14 @@
     },
     "web": {
       "favicon": "./assets/favicon.png"
-    }
+    },
+    "plugins": [
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Kaam.pk uses your location to find verified workers and jobs near you."
+        }
+      ]
+    ]
   }
 }

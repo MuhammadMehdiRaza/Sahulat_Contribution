@@ -18,4 +18,9 @@ def create_booking(
     db.add(booking)
     job.status = "booked"
     db.flush()
+    # Escrow methods lock the money from the hirer's wallet now (COD is paid in cash later).
+    # Raises payment.service.InsufficientFunds if the wallet can't cover it.
+    if payment_method != "cod":
+        from ..payment import service as pay
+        pay.hold_escrow(db, booking)
     return booking

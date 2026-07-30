@@ -149,6 +149,7 @@ class Job(Base):
     is_emergency = mapped_column(Boolean, default=False)
     status = mapped_column(String(16), default="posted")
     scheduled_for = mapped_column(DateTime, nullable=True)
+    deadline = mapped_column(DateTime, nullable=True)  # complete-by time; lapses -> auto-cancel
     created_at = mapped_column(DateTime, default=now)
     updated_at = mapped_column(DateTime, default=now, onupdate=now)
 
@@ -160,6 +161,20 @@ class WorkerLocation(Base):
     lat = mapped_column(Float, nullable=False)
     lng = mapped_column(Float, nullable=False)
     recorded_at = mapped_column(DateTime, default=now)
+
+
+class JobInterest(Base):
+    """A worker expressing interest ('I'm interested') in an open posted job.
+
+    The hirer reviews interested workers and starts AI negotiation / chat from there.
+    """
+    __tablename__ = "job_interests"
+    id = mapped_column(String(36), primary_key=True, default=uid)
+    job_id = mapped_column(String(36), ForeignKey("jobs.id"), index=True)
+    worker_id = mapped_column(String(36), ForeignKey("users.id"), index=True)
+    message = mapped_column(Text, default="")
+    status = mapped_column(String(16), default="interested")  # interested | shortlisted | dismissed
+    created_at = mapped_column(DateTime, default=now)
 
 
 # --------------------------------------------------------------------------- bidding
@@ -246,11 +261,25 @@ class Wallet(Base):
     updated_at = mapped_column(DateTime, default=now, onupdate=now)
 
 
+class WalletTxn(Base):
+    """Per-user wallet history: welcome bonus, top-ups, escrow holds, refunds, payouts."""
+    __tablename__ = "wallet_txns"
+    id = mapped_column(String(36), primary_key=True, default=uid)
+    user_id = mapped_column(String(36), ForeignKey("users.id"), index=True)
+    amount = Money()
+    direction = mapped_column(String(6))   # credit | debit
+    type = mapped_column(String(16))        # bonus | topup | hold | refund | payout
+    memo = mapped_column(String(120), default="")
+    booking_id = mapped_column(String(36), ForeignKey("bookings.id"), nullable=True)
+    created_at = mapped_column(DateTime, default=now)
+
+
 # --------------------------------------------------------------------------- chat / notifications
 class ChatThread(Base):
     __tablename__ = "chat_threads"
     id = mapped_column(String(36), primary_key=True, default=uid)
     booking_id = mapped_column(String(36), ForeignKey("bookings.id"), nullable=True)
+    job_id = mapped_column(String(36), ForeignKey("jobs.id"), nullable=True)
     hirer_id = mapped_column(String(36), ForeignKey("users.id"), index=True)
     worker_id = mapped_column(String(36), ForeignKey("users.id"), index=True)
     created_at = mapped_column(DateTime, default=now)
@@ -266,6 +295,18 @@ class ChatMessage(Base):
     voice_url = mapped_column(String(255), nullable=True)
     transcript = mapped_column(Text, nullable=True)
     lang = mapped_column(String(10), default="en")
+    created_at = mapped_column(DateTime, default=now)
+
+
+class PriceOffer(Base):
+    """A manual price offer inside a chat thread. Either party can propose/counter;
+    the *other* party accepts, which locks the price (no further changes)."""
+    __tablename__ = "price_offers"
+    id = mapped_column(String(36), primary_key=True, default=uid)
+    thread_id = mapped_column(String(36), ForeignKey("chat_threads.id"), index=True)
+    amount = Money()
+    proposed_by = mapped_column(String(36), ForeignKey("users.id"))
+    status = mapped_column(String(12), default="pending")  # pending | accepted
     created_at = mapped_column(DateTime, default=now)
 
 

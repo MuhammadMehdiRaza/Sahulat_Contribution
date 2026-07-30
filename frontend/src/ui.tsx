@@ -1,8 +1,8 @@
 // Premium shared UI primitives — gradient headers, elevated cards/buttons, flow components.
 import { LinearGradient } from 'expo-linear-gradient';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
-  ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View,
+  ActivityIndicator, KeyboardAvoidingView, Linking, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View,
 } from 'react-native';
 import { useApp } from './state';
 import { colors, gradients, radius, shadow } from './theme';
@@ -139,6 +139,115 @@ export function StatusTimeline({ steps, current }: { steps: { label: string }[];
   );
 }
 
+// Shown when we couldn't get a real GPS fix (using the Lahore fallback). Lets the user
+// grant permission / retry, or jump to system settings if permission was hard-denied.
+export function LocationBanner() {
+  const { gotReal, locating, locationDenied, refreshLocation, t } = useApp();
+  if (gotReal) return null;
+  const onPress = () => { if (locationDenied) { Linking.openSettings?.(); } else { refreshLocation(); } };
+  return (
+    <View style={s.locBanner}>
+      <Text style={{ fontSize: 20 }}>📍</Text>
+      <Text style={s.locTitle}>{locating ? t('locating') : t('locApprox')}</Text>
+      {!locating ? (
+        <TouchableOpacity onPress={onPress} style={s.locBtn}>
+          <Text style={s.locBtnTxt}>{locationDenied ? t('locOpenSettings') : t('locEnable')}</Text>
+        </TouchableOpacity>
+      ) : null}
+    </View>
+  );
+}
+
+// -------------------------------------------------------------------- date picker (calendar)
+const _WEEK = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+const _startOfDay = (d: Date) => { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; };
+
+// A tap-to-open calendar. Days before `minDate` are disabled (e.g. only today onward),
+// with month/year navigation. Pure RN so it works identically on Android/iOS/web.
+export function DatePickerField({ label, value, minDate, onChange }:
+  { label?: string; value: Date; minDate?: Date; onChange: (d: Date) => void }) {
+  const [open, setOpen] = useState(false);
+  const long = value.toLocaleDateString(undefined, { weekday: 'short', day: 'numeric', month: 'long', year: 'numeric' });
+  return (
+    <View style={{ marginBottom: 14 }}>
+      {label ? <Text style={s.label}>{label}</Text> : null}
+      <TouchableOpacity onPress={() => setOpen(true)} style={s.dateField} activeOpacity={0.8}>
+        <Text style={s.dateFieldTxt}>📅  {long}</Text>
+        <Text style={{ color: colors.green, fontWeight: '800' }}>▾</Text>
+      </TouchableOpacity>
+      <CalendarModal visible={open} initial={value} minDate={minDate}
+        onClose={() => setOpen(false)} onPick={(d) => { onChange(d); setOpen(false); }} />
+    </View>
+  );
+}
+
+function CalendarModal({ visible, initial, minDate, onPick, onClose }:
+  { visible: boolean; initial: Date; minDate?: Date; onPick: (d: Date) => void; onClose: () => void }) {
+  const [view, setView] = useState({ y: initial.getFullYear(), m: initial.getMonth() });
+  useEffect(() => { if (visible) setView({ y: initial.getFullYear(), m: initial.getMonth() }); }, [visible]);
+
+  const min = minDate ? _startOfDay(minDate) : null;
+  const startWeekday = new Date(view.y, view.m, 1).getDay();
+  const daysInMonth = new Date(view.y, view.m + 1, 0).getDate();
+  const cells: (number | null)[] = [...Array(startWeekday).fill(null), ...Array.from({ length: daysInMonth }, (_, i) => i + 1)];
+  const monthLabel = new Date(view.y, view.m, 1).toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+  const prevDisabled = !!min && new Date(view.y, view.m, 0) < min;  // last day of previous month before min
+  const dayDisabled = (d: number) => !!min && new Date(view.y, view.m, d) < min;
+  const isSel = (d: number) => initial.getFullYear() === view.y && initial.getMonth() === view.m && initial.getDate() === d;
+  const prev = () => setView(({ y, m }) => (m === 0 ? { y: y - 1, m: 11 } : { y, m: m - 1 }));
+  const next = () => setView(({ y, m }) => (m === 11 ? { y: y + 1, m: 0 } : { y, m: m + 1 }));
+
+  return (
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
+      <TouchableOpacity style={s.calBackdrop} activeOpacity={1} onPress={onClose}>
+        <TouchableOpacity activeOpacity={1} style={s.calCard} onPress={() => {}}>
+          <View style={s.calHeader}>
+            <TouchableOpacity onPress={prev} disabled={prevDisabled} style={s.calNav}>
+              <Text style={[s.calNavTxt, prevDisabled && { opacity: 0.25 }]}>‹</Text>
+            </TouchableOpacity>
+            <Text style={s.calMonth}>{monthLabel}</Text>
+            <TouchableOpacity onPress={next} style={s.calNav}><Text style={s.calNavTxt}>›</Text></TouchableOpacity>
+          </View>
+          <View style={{ flexDirection: 'row' }}>
+            {_WEEK.map((w) => <Text key={w} style={s.calWeek}>{w}</Text>)}
+          </View>
+          <View style={s.calGrid}>
+            {cells.map((d, i) => d === null
+              ? <View key={i} style={s.calCell} />
+              : (
+                <TouchableOpacity key={i} style={s.calCell} disabled={dayDisabled(d)}
+                  onPress={() => onPick(new Date(view.y, view.m, d))}>
+                  <View style={[s.calDay, isSel(d) && s.calDayOn]}>
+                    <Text style={[s.calDayTxt, dayDisabled(d) && s.calDayOff, isSel(d) && { color: '#fff' }]}>{d}</Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+          </View>
+        </TouchableOpacity>
+      </TouchableOpacity>
+    </Modal>
+  );
+}
+
+// Geofencing radius selector — FR-GEO-02 made tangible. 5/10/15 km plus one "above 15 km"
+// tier (searches far out) for when nobody is nearby. Horizontally scrollable on small screens.
+export function RadiusPicker({ value, onChange, options = [5, 10, 15, 100] }: { value: number; onChange: (v: number) => void; options?: number[] }) {
+  const { t, n } = useApp();
+  const label = (km: number) => (km > 15 ? `${n(15)}+ km` : `${n(km)} km`);  // far tier reads "15+ km"
+  return (
+    <View style={{ marginBottom: 14 }}>
+      <Text style={[s.radiusLbl, { marginBottom: 8 }]}>📍 {t('radiusLbl')}</Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingRight: 8 }}>
+        {options.map((km) => (
+          <TouchableOpacity key={km} onPress={() => onChange(km)} style={[s.radiusChip, value === km && s.radiusChipOn]}>
+            <Text style={[s.radiusChipTxt, value === km && s.radiusChipTxtOn]}>{label(km)}</Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+    </View>
+  );
+}
+
 export function EmptyState({ icon = '📭', title, subtitle }: any) {
   return (
     <View style={s.empty}>
@@ -203,6 +312,31 @@ const s = StyleSheet.create({
   tlDotActive: { backgroundColor: colors.green, transform: [{ scale: 1.12 }] },
   tlDotTxt: { color: '#fff', fontSize: 12, fontWeight: '800' },
   tlLabel: { fontSize: 10, color: colors.muted, marginTop: 4, textAlign: 'center' },
+  dateField: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: radius.md, paddingHorizontal: 14, paddingVertical: 14 },
+  dateFieldTxt: { color: colors.text, fontSize: 15, fontWeight: '600' },
+  calBackdrop: { flex: 1, backgroundColor: 'rgba(15,23,42,0.45)', alignItems: 'center', justifyContent: 'center', padding: 24 },
+  calCard: { width: '100%', maxWidth: 340, backgroundColor: '#fff', borderRadius: radius.lg, padding: 16, ...shadow.header },
+  calHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
+  calNav: { width: 40, height: 40, borderRadius: 20, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.green50 },
+  calNavTxt: { color: colors.green700, fontSize: 26, fontWeight: '800', marginTop: -4 },
+  calMonth: { fontSize: 16, fontWeight: '800', color: colors.text },
+  calWeek: { width: `${100 / 7}%`, textAlign: 'center', color: colors.muted, fontSize: 12, fontWeight: '700', paddingBottom: 6 },
+  calGrid: { flexDirection: 'row', flexWrap: 'wrap' },
+  calCell: { width: `${100 / 7}%`, alignItems: 'center', justifyContent: 'center', paddingVertical: 3 },
+  calDay: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
+  calDayOn: { backgroundColor: colors.green },
+  calDayTxt: { fontSize: 14, color: colors.text, fontWeight: '600' },
+  calDayOff: { color: colors.muted, opacity: 0.4 },
+  locBanner: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#fffbeb', borderColor: '#fde68a', borderWidth: 1, borderRadius: radius.md, padding: 12, marginBottom: 14 },
+  locTitle: { flex: 1, color: '#92400e', fontSize: 12, fontWeight: '600', lineHeight: 17 },
+  locBtn: { backgroundColor: '#92400e', borderRadius: radius.pill, paddingHorizontal: 12, paddingVertical: 7 },
+  locBtnTxt: { color: '#fff', fontWeight: '700', fontSize: 12 },
+  radiusWrap: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 },
+  radiusLbl: { fontSize: 13, fontWeight: '700', color: colors.sub },
+  radiusChip: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: radius.pill, borderWidth: 1.2, borderColor: colors.border, backgroundColor: '#fff' },
+  radiusChipOn: { borderColor: colors.green, backgroundColor: colors.green50 },
+  radiusChipTxt: { fontSize: 13, fontWeight: '700', color: colors.sub },
+  radiusChipTxtOn: { color: colors.green700 },
   empty: { alignItems: 'center', paddingVertical: 30, paddingHorizontal: 20 },
   emptyTitle: { fontSize: 15, fontWeight: '700', color: colors.text, textAlign: 'center' },
   emptySub: { fontSize: 13, color: colors.sub, textAlign: 'center', marginTop: 4, lineHeight: 19 },
