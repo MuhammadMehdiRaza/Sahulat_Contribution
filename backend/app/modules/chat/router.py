@@ -78,6 +78,7 @@ class OfferOut(BaseModel):
     worker_id: str
     peer_name: str = ""           # the other party's name, relative to the caller
     booking_id: Optional[str] = None  # set once a booking exists for this job (stop re-paying)
+    worker_available: bool = True     # price negotiation is only offered while the worker is online
 
 
 # -------------------------------------------------------------------- ws manager
@@ -153,6 +154,7 @@ def _offer_out(db: Session, thread: ChatThread, offer: Optional[PriceOffer], use
     if booking_id is None and thread.job_id:
         b = db.query(Booking).filter(Booking.job_id == thread.job_id, Booking.status != "cancelled").first()
         booking_id = b.id if b else None
+    wp = db.query(WorkerProfile).filter(WorkerProfile.user_id == thread.worker_id).first()
     return OfferOut(
         amount=offer.amount if offer else None,
         status=offer.status if offer else "none",
@@ -160,6 +162,7 @@ def _offer_out(db: Session, thread: ChatThread, offer: Optional[PriceOffer], use
         locked=bool(offer and offer.status == "accepted"),
         job_id=thread.job_id, hirer_id=thread.hirer_id, worker_id=thread.worker_id,
         peer_name=(peer.full_name if peer else ""), booking_id=booking_id,
+        worker_available=bool(wp and wp.availability == "available"),
     )
 
 

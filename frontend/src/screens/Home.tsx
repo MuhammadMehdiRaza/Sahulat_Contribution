@@ -5,7 +5,7 @@ import { api } from '../api';
 import BottomNav from '../BottomNav';
 import { useApp } from '../state';
 import { colors, gradients, radius, services, shadow } from '../theme';
-import { Badge, Card, LangToggle, LocationBanner, LocationField, RadiusPicker, Row, Screen } from '../ui';
+import { Badge, Card, LangToggle, LocationBanner, RadiusPicker, Row, Screen } from '../ui';
 
 export default function Home() {
   const { navigate, showToast, coords, place, locating, t, n } = useApp();
@@ -13,14 +13,13 @@ export default function Home() {
   const [workers, setWorkers] = useState<any[] | null>(null);
   const [radius, setRadius] = useState(15);
   const [balance, setBalance] = useState<number | null>(null);
-  const [locOverride, setLocOverride] = useState<{ lat: number; lng: number; label: string } | null>(null);
-  const searchLoc = locOverride || { lat: coords.lat, lng: coords.lng, label: place };
 
+  // Always search around the customer's real GPS position (no manual city selection).
   useEffect(() => {
     (async () => {
-      try { setWorkers(await api.matchWorkers(searchLoc.lat, searchLoc.lng, '', radius)); } catch { setWorkers([]); }
+      try { setWorkers(await api.matchWorkers(coords.lat, coords.lng, '', radius)); } catch { setWorkers([]); }
     })();
-  }, [radius, searchLoc.lat, searchLoc.lng]);
+  }, [radius, coords.lat, coords.lng]);
   useEffect(() => { api.wallet().then((w) => setBalance(w.balance)).catch(() => {}); }, []);
 
   const search = async () => {
@@ -92,8 +91,7 @@ export default function Home() {
             ))}
           </View>
 
-          <Text style={st.h2}>{t('topWorkers')}</Text>
-          <LocationField label={t('searchArea')} value={searchLoc} onChange={setLocOverride} />
+          <Text style={st.h2}>{t('workersNearYou')}</Text>
           <RadiusPicker value={radius} onChange={setRadius} />
           {workers === null ? <ActivityIndicator color={colors.green} />
             : workers.length === 0 ? (

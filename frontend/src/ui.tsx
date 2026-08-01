@@ -144,12 +144,14 @@ export function StatusTimeline({ steps, current }: { steps: { label: string }[];
 export function LocationBanner() {
   const { gotReal, locating, locationDenied, refreshLocation, t } = useApp();
   if (gotReal) return null;
+  // Browsers only expose location on a secure origin (localhost / https). Detect the insecure case.
+  const webBlocked = Platform.OS === 'web' && typeof window !== 'undefined' && (window as any).isSecureContext === false;
   const onPress = () => { if (locationDenied) { Linking.openSettings?.(); } else { refreshLocation(); } };
   return (
     <View style={s.locBanner}>
       <Text style={{ fontSize: 20 }}>📍</Text>
-      <Text style={s.locTitle}>{locating ? t('locating') : t('locApprox')}</Text>
-      {!locating ? (
+      <Text style={s.locTitle}>{webBlocked ? t('locBlockedWeb') : locating ? t('locating') : t('locApprox')}</Text>
+      {!locating && !webBlocked ? (
         <TouchableOpacity onPress={onPress} style={s.locBtn}>
           <Text style={s.locBtnTxt}>{locationDenied ? t('locOpenSettings') : t('locEnable')}</Text>
         </TouchableOpacity>
@@ -229,66 +231,11 @@ function CalendarModal({ visible, initial, minDate, onPick, onClose }:
   );
 }
 
-// -------------------------------------------------------------------- location picker
-// Major Pakistani cities (client-side coordinates) — a dependency-free "pick anywhere in
-// Pakistan" without a paid maps SDK. A true map pin-drop is a documented future task.
-export const PK_CITIES = [
-  { name: 'Lahore', lat: 31.5204, lng: 74.3587 }, { name: 'Karachi', lat: 24.8607, lng: 67.0011 },
-  { name: 'Islamabad', lat: 33.6844, lng: 73.0479 }, { name: 'Rawalpindi', lat: 33.5651, lng: 73.0169 },
-  { name: 'Faisalabad', lat: 31.4187, lng: 73.0791 }, { name: 'Multan', lat: 30.1575, lng: 71.5249 },
-  { name: 'Peshawar', lat: 34.0151, lng: 71.5249 }, { name: 'Quetta', lat: 30.1798, lng: 66.9750 },
-  { name: 'Gujranwala', lat: 32.1877, lng: 74.1945 }, { name: 'Sialkot', lat: 32.4945, lng: 74.5229 },
-  { name: 'Hyderabad', lat: 25.3960, lng: 68.3578 }, { name: 'Bahawalpur', lat: 29.3956, lng: 71.6836 },
-];
-
-type Loc = { lat: number; lng: number; label: string };
-
-export function LocationField({ label, value, onChange }:
-  { label?: string; value: Loc; onChange: (v: Loc) => void }) {
-  const { coords, place, refreshLocation, t } = useApp();
-  const [open, setOpen] = useState(false);
-  const useCurrent = async () => {
-    const c = await refreshLocation();
-    const loc = c || coords;
-    onChange({ lat: loc.lat, lng: loc.lng, label: place || t('currentLocation') });
-    setOpen(false);
-  };
-  return (
-    <View style={{ marginBottom: 14 }}>
-      {label ? <Text style={s.label}>{label}</Text> : null}
-      <TouchableOpacity onPress={() => setOpen(true)} style={s.dateField} activeOpacity={0.8}>
-        <Text style={s.dateFieldTxt} numberOfLines={1}>📍  {value?.label || t('chooseLocation')}</Text>
-        <Text style={{ color: colors.green, fontWeight: '800' }}>▾</Text>
-      </TouchableOpacity>
-      <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
-        <TouchableOpacity style={s.calBackdrop} activeOpacity={1} onPress={() => setOpen(false)}>
-          <TouchableOpacity activeOpacity={1} style={[s.calCard, { maxHeight: '82%' }]} onPress={() => {}}>
-            <Text style={s.locPickTitle}>{t('chooseLocation')}</Text>
-            <TouchableOpacity onPress={useCurrent} style={s.locCurrent}>
-              <Text style={s.locCurrentTxt}>📍 {t('useCurrentLocation')}</Text>
-            </TouchableOpacity>
-            <Text style={s.locOr}>{t('orPickCity')}</Text>
-            <ScrollView style={{ maxHeight: 320 }}>
-              {PK_CITIES.map((c) => (
-                <TouchableOpacity key={c.name} style={s.locCity}
-                  onPress={() => { onChange({ lat: c.lat, lng: c.lng, label: c.name }); setOpen(false); }}>
-                  <Text style={s.locCityTxt}>{c.name}</Text>
-                  {value?.label === c.name ? <Text style={{ color: colors.green, fontWeight: '800' }}>✓</Text> : null}
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </TouchableOpacity>
-        </TouchableOpacity>
-      </Modal>
-    </View>
-  );
-}
-
-// Geofencing radius selector — FR-GEO-02 made tangible. 5/10/15 km plus one "above 15 km"
-// tier (searches far out) for when nobody is nearby. Horizontally scrollable on small screens.
+// Geofencing radius selector — FR-GEO-02 made tangible. 5/10/15 km plus an "Anywhere" tier
+// (no distance limit) for when nobody is nearby. Horizontally scrollable on small screens.
 export function RadiusPicker({ value, onChange, options = [5, 10, 15, 100] }: { value: number; onChange: (v: number) => void; options?: number[] }) {
   const { t, n } = useApp();
-  const label = (km: number) => (km > 15 ? `${n(15)}+ km` : `${n(km)} km`);  // far tier reads "15+ km"
+  const label = (km: number) => (km > 15 ? t('anywhere') : `${n(km)} km`);  // far tier = "Anywhere"
   return (
     <View style={{ marginBottom: 14 }}>
       <Text style={[s.radiusLbl, { marginBottom: 8 }]}>📍 {t('radiusLbl')}</Text>
@@ -382,12 +329,6 @@ const s = StyleSheet.create({
   calDayOn: { backgroundColor: colors.green },
   calDayTxt: { fontSize: 14, color: colors.text, fontWeight: '600' },
   calDayOff: { color: colors.muted, opacity: 0.4 },
-  locPickTitle: { fontSize: 16, fontWeight: '800', color: colors.text, marginBottom: 12 },
-  locCurrent: { backgroundColor: colors.green50, borderColor: '#bbf7d0', borderWidth: 1, borderRadius: radius.md, padding: 14, alignItems: 'center' },
-  locCurrentTxt: { color: colors.green700, fontWeight: '800', fontSize: 14 },
-  locOr: { color: colors.muted, fontSize: 12, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.4, marginTop: 14, marginBottom: 6 },
-  locCity: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 13, borderBottomWidth: 1, borderBottomColor: colors.border },
-  locCityTxt: { fontSize: 15, color: colors.text, fontWeight: '600' },
   locBanner: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#fffbeb', borderColor: '#fde68a', borderWidth: 1, borderRadius: radius.md, padding: 12, marginBottom: 14 },
   locTitle: { flex: 1, color: '#92400e', fontSize: 12, fontWeight: '600', lineHeight: 17 },
   locBtn: { backgroundColor: '#92400e', borderRadius: radius.pill, paddingHorizontal: 12, paddingVertical: 7 },

@@ -5,19 +5,19 @@ import BottomNav from '../BottomNav';
 import { endOfDayISO } from '../dates';
 import { useApp } from '../state';
 import { colors, radius, services } from '../theme';
-import { Btn, DatePickerField, Field, Header, LocationField, Screen } from '../ui';
+import { Btn, DatePickerField, Field, Header, Screen } from '../ui';
 
 export default function PostJob() {
-  const { params, navigate, goBack, showToast, coords, place, t } = useApp();
+  const { params, navigate, goBack, showToast, coords, place, locating, t } = useApp();
   const emergency = !!params?.emergency;
   const [category, setCategory] = useState(params?.category || 'plumber');
   const [description, setDescription] = useState('');
   const [target, setTarget] = useState('2000');
   const [max, setMax] = useState('3000');
-  const [locOverride, setLocOverride] = useState<{ lat: number; lng: number; label: string } | null>(null);
   const [deadline, setDeadline] = useState(new Date(Date.now() + 3 * 86400000));  // default: 3 days out
   const [loading, setLoading] = useState(false);
-  const jobLoc = locOverride || { lat: coords.lat, lng: coords.lng, label: place };
+  // The job is posted at the customer's current GPS location (workers are matched around it).
+  const jobLoc = { lat: coords.lat, lng: coords.lng, label: place };
 
   const submit = async () => {
     setLoading(true);
@@ -56,7 +56,11 @@ export default function PostJob() {
           <View style={{ flex: 1 }}><Field label={t('budgetTarget')} value={target} onChangeText={setTarget} keyboardType="number-pad" /></View>
           <View style={{ flex: 1 }}><Field label={t('budgetMax')} value={max} onChangeText={setMax} keyboardType="number-pad" /></View>
         </View>
-        <LocationField label={t('jobLocationLbl')} value={jobLoc} onChange={setLocOverride} />
+        <Text style={st.label}>{t('jobLocationLbl')}</Text>
+        <View style={st.jobLocRow}>
+          <Text style={st.jobLocTxt}>📍 {locating ? t('locating') : place}</Text>
+        </View>
+        <Text style={st.jobLocHint}>{t('jobLocationHint')}</Text>
 
         <DatePickerField label={t('deadlineLbl')} value={deadline} minDate={new Date()} onChange={setDeadline} />
 
@@ -72,5 +76,7 @@ const st = StyleSheet.create({
   cats: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 16 },
   cat: { borderWidth: 1, borderColor: colors.border, borderRadius: radius.pill, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: '#fff' },
   catOn: { borderColor: colors.green, backgroundColor: colors.green50 },
-  deadlineHint: { color: colors.sub, fontSize: 12, marginTop: -4, marginBottom: 16 },
+  jobLocRow: { backgroundColor: '#f8fafc', borderWidth: 1, borderColor: '#e2e8f0', borderRadius: radius.md, paddingHorizontal: 14, paddingVertical: 13 },
+  jobLocTxt: { color: colors.text, fontSize: 15, fontWeight: '600' },
+  jobLocHint: { color: colors.sub, fontSize: 12, marginTop: 6, marginBottom: 16, lineHeight: 17 },
 });

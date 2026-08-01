@@ -127,19 +127,6 @@ function Conversation({ threadId, peerName }: any) {
   // ---- price bar shown above the input ----
   const renderOfferBar = () => {
     if (!offer) return null;
-    if (showAmount) {
-      return (
-        <View style={st.offerBar}>
-          <Text style={st.offerTitle}>{t('enterAmount')}</Text>
-          <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
-            <TextInput value={amount} onChangeText={setAmount} keyboardType="number-pad" placeholder="2500"
-              placeholderTextColor={colors.muted} style={st.amountInput} />
-            <TouchableOpacity onPress={sendOffer} style={st.offerBtn}><Text style={st.offerBtnTxt}>{t('sendOffer')}</Text></TouchableOpacity>
-            <TouchableOpacity onPress={() => setShowAmount(false)} style={st.offerBtnGhost}><Text style={st.offerBtnGhostTxt}>{t('cancel')}</Text></TouchableOpacity>
-          </View>
-        </View>
-      );
-    }
     if (offer.locked) {
       const booked = !!offer.booking_id;
       return (
@@ -152,6 +139,27 @@ function Conversation({ threadId, peerName }: any) {
             : iAmHirer
               ? <TouchableOpacity onPress={proceedPay} style={[st.offerBtn, { marginTop: 8, alignSelf: 'flex-start' }]}><Text style={st.offerBtnTxt}>{t('proceedPayment')}</Text></TouchableOpacity>
               : <Text style={st.offerSub}>{t('waitingBooking')}</Text>}
+        </View>
+      );
+    }
+    // Price negotiation is only offered while the worker is online.
+    if (!offer.worker_available) {
+      return (
+        <View style={st.offerBar}>
+          <Text style={st.offerSub}>💬 {t('priceWhenOnline', { name })}</Text>
+        </View>
+      );
+    }
+    if (showAmount) {
+      return (
+        <View style={st.offerBar}>
+          <Text style={st.offerTitle}>{t('enterAmount')}</Text>
+          <View style={{ flexDirection: 'row', gap: 8, marginTop: 8 }}>
+            <TextInput value={amount} onChangeText={setAmount} keyboardType="number-pad" placeholder="2500"
+              placeholderTextColor={colors.muted} style={st.amountInput} />
+            <TouchableOpacity onPress={sendOffer} style={st.offerBtn}><Text style={st.offerBtnTxt}>{t('sendOffer')}</Text></TouchableOpacity>
+            <TouchableOpacity onPress={() => setShowAmount(false)} style={st.offerBtnGhost}><Text style={st.offerBtnGhostTxt}>{t('cancel')}</Text></TouchableOpacity>
+          </View>
         </View>
       );
     }

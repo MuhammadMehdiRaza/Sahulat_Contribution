@@ -63,9 +63,11 @@ export default function JobApplicants() {
               </Row>
               {a.message ? <Text style={st.note}>{t('workerMessage', { msg: a.message })}</Text> : null}
 
-              {!booked ? (
+              {!booked && a.availability === 'available' ? (
                 <Btn title={t('negotiateHire')} style={{ marginTop: 12 }}
                   onPress={() => navigate('bidding', { worker: a, job })} />
+              ) : !booked ? (
+                <Text style={st.busy}>{t('workerBusyShort')}</Text>
               ) : null}
               <Row style={{ gap: 10, marginTop: booked ? 12 : 10 }}>
                 <Btn title={t('message')} variant="outline" style={{ flex: 1 }} onPress={() => chat(a)} />
@@ -84,4 +86,5 @@ const st = StyleSheet.create({
   skill: { color: colors.sub, marginTop: 2 },
   meta: { color: colors.sub, fontSize: 12 },
   note: { color: colors.text, fontStyle: 'italic', marginTop: 10, backgroundColor: '#f8fafc', padding: 10, borderRadius: 10 },
+  busy: { color: '#92400e', fontWeight: '600', fontSize: 13, marginTop: 12 },
 });

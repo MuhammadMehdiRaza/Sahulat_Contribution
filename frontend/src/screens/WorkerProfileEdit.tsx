@@ -3,12 +3,12 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { api } from '../api';
 import { useApp } from '../state';
 import { colors, radius, services } from '../theme';
-import { Btn, Field, Header, LocationField, Row, Screen } from '../ui';
+import { Btn, Field, Header, Row, Screen } from '../ui';
 
 // Lets a worker set their skills, rate band and work location so they appear in
 // customers' nearby/radius searches with real data.
 export default function WorkerProfileEdit() {
-  const { goBack, showToast, coords, place, t } = useApp();
+  const { goBack, showToast, coords, place, gotReal, refreshLocation, t } = useApp();
   const [skills, setSkills] = useState<string[]>([]);
   const [rateMin, setRateMin] = useState('');
   const [rateTarget, setRateTarget] = useState('');
@@ -31,6 +31,13 @@ export default function WorkerProfileEdit() {
 
   const toggleSkill = (k: string) =>
     setSkills((s) => (s.includes(k) ? s.filter((x) => x !== k) : [...s, k]));
+
+  const useMyLocation = async () => {
+    const c = await refreshLocation();               // gets the real GPS fix (or null)
+    if (c) setLoc({ lat: c.lat, lng: c.lng, label: '' });
+    else if (gotReal) setLoc({ lat: coords.lat, lng: coords.lng, label: '' });
+    else showToast(t('locApprox'));                  // couldn't read location (permission off / web blocked)
+  };
 
   const save = async () => {
     if (skills.length === 0) { showToast(t('pickSkill')); return; }
@@ -69,9 +76,9 @@ export default function WorkerProfileEdit() {
 
         <Field label={t('bioLbl')} value={bio} onChangeText={setBio} placeholder={t('bioHint')} multiline />
 
-        <LocationField label={t('workLocation')} value={loc || { lat: coords.lat, lng: coords.lng, label: '' }}
-          onChange={(v) => setLoc(v)} />
-        <View style={[st.status, loc ? st.statusOn : st.statusOff]}>
+        <Text style={st.label}>{t('workLocation')}</Text>
+        <Btn title={t('useMyLocation')} variant="outline" onPress={useMyLocation} />
+        <View style={[st.status, loc ? st.statusOn : st.statusOff, { marginTop: 10 }]}>
           <Text style={loc ? st.statusOnTxt : st.statusOffTxt}>
             {loc ? `✅ ${t('locationSetTo', { place: loc.label || place })}` : `⚠️ ${t('noLocationSet')}`}
           </Text>

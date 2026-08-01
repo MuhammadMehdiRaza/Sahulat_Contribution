@@ -21,6 +21,7 @@ export default function WorkerProfile() {
   if (!w) return <View style={{ flex: 1 }}><Header title={t('worker')} onBack={goBack} /><Loading /></View>;
   const written = reviews.filter((r) => (r.comment || '').trim());
   const jobBooked = ['booked', 'completed', 'cancelled'].includes(params.job?.status);
+  const available = w.availability === 'available';  // offline/busy workers → message only
 
   const badges = Object.entries(w.badges || {}).filter(([, v]) => v).map(([k]) => k.toUpperCase());
   const message = async () => {
@@ -50,12 +51,14 @@ export default function WorkerProfile() {
 
         {jobBooked ? (
           <View style={st.bookedNote}><Text style={st.bookedNoteTxt}>{t('alreadyBookedNote')}</Text></View>
-        ) : (
+        ) : available ? (
           <>
             <Btn title={t('negotiate')} onPress={() => navigate('bidding', { worker: w, job: params.job })} />
             <Btn title={t('bookNow')} variant="outline" style={{ marginTop: 10 }}
               onPress={() => navigate('bookingPayment', { worker: w, job: params.job, agreed_price: w.rate_target || 2000 })} />
           </>
+        ) : (
+          <View style={st.busyNote}><Text style={st.busyNoteTxt}>{t('workerBusyNote')}</Text></View>
         )}
         <Btn title={t('message')} variant="outline" style={{ marginTop: 10 }} onPress={message} />
 
@@ -90,5 +93,7 @@ const st = StyleSheet.create({
   reviewTxt: { color: colors.sub, marginTop: 6, lineHeight: 19 },
   bookedNote: { backgroundColor: '#ede9fe', borderColor: '#ddd6fe', borderWidth: 1, borderRadius: 12, padding: 14 },
   bookedNoteTxt: { color: '#6d28d9', fontWeight: '600', lineHeight: 19 },
+  busyNote: { backgroundColor: '#fffbeb', borderColor: '#fde68a', borderWidth: 1, borderRadius: 12, padding: 14 },
+  busyNoteTxt: { color: '#92400e', fontWeight: '600', lineHeight: 19 },
 });
 

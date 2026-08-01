@@ -76,7 +76,8 @@ def _candidates(db: Session, lat: float, lng: float, radius: float, category: Op
             continue
         score = round(wp.rating_avg * 10 + (wp.jobs_completed or 0) * 0.1 - dist, 3)
         rows.append((wp, user, round(dist, 2), score))
-    rows.sort(key=lambda r: r[3], reverse=True)
+    # Rank: (1) available workers first, (2) shortest distance, (3) highest rating.
+    rows.sort(key=lambda r: (0 if r[0].availability == "available" else 1, r[2], -(r[0].rating_avg or 0)))
     return rows
 
 
@@ -94,7 +95,9 @@ def match_workers(
     db: Session = Depends(get_db), _: User = Depends(require_role("hirer")),
 ):
     radius = min(radius_km or settings.match_default_radius_km, settings.match_max_radius_km)
-    rows = _candidates(db, lat, lng, radius, category, require_available=True)
+    # Include verified workers in range even if not currently "available" — they rank below
+    # available ones (the availability badge tells the customer their status).
+    rows = _candidates(db, lat, lng, radius, category, require_available=False)
     return [
         WorkerMatch(
             worker_id=wp.user_id, full_name=user.full_name, skills=wp.skills or [],

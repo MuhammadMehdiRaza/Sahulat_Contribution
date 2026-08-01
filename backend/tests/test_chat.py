@@ -35,6 +35,17 @@ def test_non_participant_cannot_read(hirer, verified_worker, register, client):
     assert client.get(f"/api/v1/chat/threads/{tid}/messages", headers=intruder["headers"]).status_code == 403
 
 
+def test_offer_reports_worker_availability(hirer, verified_worker, client):
+    # the chat exposes whether the worker is online so the app can hide the price feature
+    tid = _thread(client, hirer, verified_worker)
+    o = client.get(f"/api/v1/chat/threads/{tid}/offer", headers=hirer["headers"]).json()
+    assert o["worker_available"] is True
+    client.patch("/api/v1/profiles/me/worker/availability", headers=verified_worker["headers"],
+                 json={"availability": "offline"})
+    o2 = client.get(f"/api/v1/chat/threads/{tid}/offer", headers=hirer["headers"]).json()
+    assert o2["worker_available"] is False
+
+
 def test_price_offer_counter_accept_and_lock(hirer, verified_worker, client):
     tid = _thread(client, hirer, verified_worker)
     wh, hh = verified_worker["headers"], hirer["headers"]

@@ -1,6 +1,7 @@
 // App-wide auth + navigation state (mirrors the Figma App.tsx state-machine navigator).
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import * as Location from 'expo-location';
+import { resolvePlace } from './geo';
 import { api, setAuthToken } from './api';
 import { isRTL, Lang, localizeNum, makeT } from './i18n';
 
@@ -66,16 +67,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const c = { lat: pos.coords.latitude, lng: pos.coords.longitude };
         setCoords(c);
         setGotReal(true);
-        // On-device reverse geocoding — turns GPS into a city/country name (no API key).
-        try {
-          const geo = await Location.reverseGeocodeAsync({ latitude: c.lat, longitude: c.lng });
-          const g = geo && geo[0];
-          if (g) {
-            const city = g.city || g.subregion || g.district || g.region || '';
-            const label = [city, g.country].filter(Boolean).join(', ');
-            if (label) setPlace(label);
-          }
-        } catch { /* reverse geocoding not available (e.g. web) — keep coordinates-based flow */ }
+        // Coordinates -> "City, Country" (works on native AND in the browser). See src/geo.ts.
+        const label = await resolvePlace(c.lat, c.lng);
+        if (label) setPlace(label);
         return c;
       }
       return null;
