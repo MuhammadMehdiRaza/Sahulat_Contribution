@@ -4,6 +4,7 @@ FR-CHAT-01 (mask phone numbers, route via in-app channel),
 FR-CHAT-02 (voice messages transcribed in UR/EN/Roman-UR).
 Live delivery over WebSocket; REST for history and sending.
 """
+import json
 from datetime import datetime
 from typing import List, Literal, Optional
 
@@ -18,6 +19,7 @@ from ...core.deps import get_current_user
 from ...core.security import decode_token
 from ...core.utils import mask_phone_numbers
 from ...models import Booking, ChatMessage, ChatThread, Job, PriceOffer, User, WorkerProfile
+from ..bidding.orchestrator import NegotiationOrchestrator
 from ..booking.service import create_booking
 from ..notifications.service import notify
 from ..payment import service as pay
@@ -66,6 +68,13 @@ class MessageOut(BaseModel):
 
 class OfferIn(BaseModel):
     amount: float
+
+
+class AiNegotiateIn(BaseModel):
+    hirer_target: Optional[float] = None
+    hirer_max: Optional[float] = None
+    worker_min: Optional[float] = None
+    worker_target: Optional[float] = None
 
 
 class OfferOut(BaseModel):
@@ -337,6 +346,116 @@ def create_thread_booking(thread_id: str, payload: ThreadBookingIn, db: Session 
     db.commit()
     db.refresh(booking)
     return {"booking_id": booking.id, "status": booking.status, "already": False}
+
+
+@router.post("/threads/{thread_id}/ai-negotiate")
+def trigger_in_chat_ai_negotiation(
+    thread_id: str,
+    payload: AiNegotiateIn,
+    db: Session = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Run turn-by-turn AgenticPay HF local AI negotiation directly inside chat thread history."""
+    thread = _participant_thread(db, thread_id, user)
+
+    # Retrieve job & worker details
+    job = db.get(Job, thread.job_id) if thread.job_id else None
+    wp = db.query(WorkerProfile).filter(WorkerProfile.user_id == thread.worker_id).first()
+
+    hirer_target = payload.hirer_target or (job.budget_target if job else 2000.0) or 2000.0
+    hirer_max = payload.hirer_max or (job.budget_max if job else 3000.0) or 3000.0
+    worker_min = payload.worker_min or (wp.rate_min if wp else 1500.0) or 1500.0
+    worker_target = payload.worker_target or (wp.rate_target if wp else 2500.0) or 2500.0
+
+    category = job.category if job else (wp.skills[0] if wp and wp.skills else "service")
+    description = job.description if job else "Requested service"
+
+    orchestrator = NegotiationOrchestrator(
+        hirer_target=hirer_target,
+        hirer_max=hirer_max,
+        worker_min=worker_min,
+        worker_target=worker_target,
+        job_category=category,
+        job_description=description,
+    )
+
+    outcome = orchestrator.run_negotiation_sync()
+
+    # Post turn-by-turn dialogue messages directly into ChatMessage table
+    for r in outcome["rounds"]:
+        c_msg = ChatMessage(
+            thread_id=thread.id,
+            sender_id=thread.hirer_id,
+            type="ai_agent",
+            body=f"🤖 Customer Agent: \"{r['hirer_message']}\"",
+            lang="en",
+        )
+        db.add(c_msg)
+
+        w_msg = ChatMessage(
+            thread_id=thread.id,
+            sender_id=thread.worker_id,
+            type="ai_agent",
+            body=f"👷 Worker Agent: \"{r['worker_message']}\"",
+            lang="en",
+        )
+        db.add(w_msg)
+
+    if outcome["status"] == "agreed":
+        final_price = outcome["final_price"]
+        # Lock price offer
+        offer = PriceOffer(
+            thread_id=thread.id,
+            amount=final_price,
+            proposed_by=thread.hirer_id,
+            status="accepted",
+        )
+        db.add(offer)
+
+        analytics_payload = {
+            "status": "agreed",
+            "final_price": final_price,
+            "savings": outcome["savings"],
+            "duration_sec": outcome["duration_sec"],
+            "satisfaction_score": outcome["satisfaction_score"],
+            "rounds_count": len(outcome["rounds"]),
+        }
+
+        sys_msg = ChatMessage(
+            thread_id=thread.id,
+            sender_id=user.id,
+            type="ai_analytics",
+            body=json.dumps(analytics_payload),
+            lang="en",
+        )
+        db.add(sys_msg)
+
+        notify(
+            db,
+            thread.worker_id if user.id == thread.hirer_id else thread.hirer_id,
+            "price_locked",
+            "AI Negotiation Settled! 🎉",
+            f"Agreed at PKR {final_price:,.0f}. Ready for payment.",
+            {"thread_id": thread.id},
+        )
+    else:
+        failure_payload = {
+            "status": "failed",
+            "failure_reason": outcome["failure_reason"],
+            "rounds_count": len(outcome["rounds"]),
+            "gap": outcome["rounds"][-1]["gap"] if outcome["rounds"] else 0,
+        }
+        sys_msg = ChatMessage(
+            thread_id=thread.id,
+            sender_id=user.id,
+            type="ai_failure",
+            body=json.dumps(failure_payload),
+            lang="en",
+        )
+        db.add(sys_msg)
+
+    db.commit()
+    return outcome
 
 
 @router.websocket("/threads/{thread_id}/ws")

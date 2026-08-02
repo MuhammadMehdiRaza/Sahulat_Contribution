@@ -109,3 +109,32 @@ def test_new_job_starts_fresh_thread(hirer, verified_worker, client):
     assert tB != tA
     offerB = client.get(f"/api/v1/chat/threads/{tB}/offer", headers=hirer["headers"]).json()
     assert offerB["status"] == "none" and offerB["booking_id"] is None
+
+
+def test_in_chat_ai_negotiation(client, hirer, verified_worker):
+    """Test running AgenticPay HF local AI negotiation directly inside a chat thread."""
+    wid = verified_worker["id"]
+    res = client.post("/api/v1/chat/threads", headers=hirer["headers"], json={"peer_id": wid})
+    assert res.status_code == 201
+    thread_id = res.json()["id"]
+
+    ai_res = client.post(
+        f"/api/v1/chat/threads/{thread_id}/ai-negotiate",
+        headers=hirer["headers"],
+        json={"hirer_target": 1500, "hirer_max": 2500, "worker_min": 1400, "worker_target": 2200},
+    )
+    assert ai_res.status_code == 200
+    outcome = ai_res.json()
+    assert outcome["status"] in ("agreed", "failed")
+    assert "savings" in outcome
+    assert "satisfaction_score" in outcome
+
+    # Check that messages exist in thread history
+    msgs_res = client.get(f"/api/v1/chat/threads/{thread_id}/messages", headers=hirer["headers"])
+    assert msgs_res.status_code == 200
+    msgs = msgs_res.json()
+    assert len(msgs) >= 2
+    types = [m["type"] for m in msgs]
+    assert "ai_agent" in types
+    assert ("ai_analytics" in types) or ("ai_failure" in types)
+
