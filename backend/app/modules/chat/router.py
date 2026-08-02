@@ -234,6 +234,9 @@ def send_message(thread_id: str, payload: MessageIn, db: Session = Depends(get_d
     db.add(msg)
     db.commit()
     db.refresh(msg)
+    thread = _participant_thread(db, thread_id, user)
+    other = thread.worker_id if user.id == thread.hirer_id else thread.hirer_id
+    notify(db, other, "chat_message", "New message 💬", f"{user.full_name}: {msg.body[:50]}", {"thread_id": thread_id})
     return msg
 
 
@@ -367,6 +370,8 @@ async def chat_ws(websocket: WebSocket, thread_id: str, token: str = ""):
                     "id": msg.id, "thread_id": thread_id, "sender_id": user.id,
                     "body": body, "created_at": msg.created_at.isoformat(),
                 })
+                other = thread.worker_id if user.id == thread.hirer_id else thread.hirer_id
+                notify(db, other, "chat_message", "New message 💬", f"{user.full_name}: {body[:50]}", {"thread_id": thread_id})
         except WebSocketDisconnect:
             manager.disconnect(thread_id, websocket)
     finally:

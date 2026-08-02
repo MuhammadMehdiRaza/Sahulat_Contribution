@@ -17,9 +17,11 @@ class Settings(BaseSettings):
 
     # Auth / OTP
     otp_ttl_seconds: int = 180
-    otp_provider: str = "mock"        # mock | sms | whatsapp
+    otp_provider: str = "mock"        # mock | twilio | whatsapp
     expose_debug_otp: bool = True     # dev only: return OTP in the request response
-
+    sendpk_api_key: str = ""
+    sendpk_sender: str = ""
+    sendpk_base_url: str = "https://sendpk.com/api/sms.php"
     # External providers (mock by default)
     nadra_provider: str = "mock"
     payment_provider: str = "mock"
