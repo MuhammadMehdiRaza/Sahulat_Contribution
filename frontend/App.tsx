@@ -14,7 +14,7 @@ import Home from './src/screens/Home';
 import ServiceListing from './src/screens/ServiceListing';
 import WorkerProfile from './src/screens/WorkerProfile';
 import PostJob from './src/screens/PostJob';
-import Bidding from './src/screens/Bidding';
+// Bidding screen removed — negotiation happens directly in Chat
 import BookingPayment from './src/screens/BookingPayment';
 import Chat from './src/screens/Chat';
 import Rating from './src/screens/Rating';
@@ -32,7 +32,7 @@ import WorkerProfileEdit from './src/screens/WorkerProfileEdit';
 
 const SCREENS: Record<string, any> = {
   onboarding: Onboarding, login: Login, signup: Signup, forgotPassword: ForgotPassword, home: Home, serviceListing: ServiceListing,
-  workerProfile: WorkerProfile, postJob: PostJob, bidding: Bidding, bookingPayment: BookingPayment,
+  workerProfile: WorkerProfile, postJob: PostJob, bookingPayment: BookingPayment,
   chat: Chat, rating: Rating, workerDashboard: WorkerDashboard, kyc: Kyc, settings: Settings,
   bookings: Bookings, notifications: Notifications,
   jobDetail: JobDetail, myJobs: MyJobs, jobApplicants: JobApplicants, bookingDetail: BookingDetail, wallet: Wallet,

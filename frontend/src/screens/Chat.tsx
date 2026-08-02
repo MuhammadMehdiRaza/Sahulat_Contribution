@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { api } from '../api';
 import Icon from '../Icon';
 import BottomNav from '../BottomNav';
@@ -71,21 +71,48 @@ function ThreadList() {
 }
 
 function Conversation({ threadId, peerName }: any) {
-  const { user, navigate, goBack, showToast, t, n, language } = useApp();
+  const { user, navigate, goBack, showToast, t, n, language, params } = useApp();
   const userId = user?.id;
   const [msgs, setMsgs] = useState<any[]>([]);
   const [offer, setOffer] = useState<any | null>(null);
   const [text, setText] = useState('');
   const [amount, setAmount] = useState('');
   const [showAmount, setShowAmount] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
   const scroller = useRef<ScrollView>(null);
+  // Guard: only auto-trigger negotiation once per mount, not on every re-render
+  const aiTriggered = useRef(false);
 
   const load = async () => {
     try { setMsgs(await api.messages(threadId)); } catch {}
     try { setOffer(await api.getOffer(threadId)); } catch {}
   };
+
+  const runAiNegotiation = async () => {
+    // Don't re-run if already has negotiation messages or already running
+    if (aiLoading) return;
+    setAiLoading(true);
+    try {
+      await api.aiNegotiateInChat(threadId, {
+        hirer_target: params?.hirer_target ?? undefined,
+        hirer_max: params?.hirer_max ?? undefined,
+      });
+      showToast('✅ AI Negotiation complete!');
+      await load();
+    } catch (e: any) {
+      showToast(e.message || 'Negotiation error');
+    } finally {
+      setAiLoading(false);
+    }
+  };
+
   useEffect(() => {
     load();
+    // Auto-trigger AI negotiation exactly once when navigated here with autoAi flag
+    if (params?.autoAi && !aiTriggered.current) {
+      aiTriggered.current = true;
+      runAiNegotiation();
+    }
     const id = setInterval(load, 3500);  // light polling so the other side's messages/offers appear
     return () => clearInterval(id);
   }, [threadId]);
@@ -107,8 +134,7 @@ function Conversation({ threadId, peerName }: any) {
     catch (e: any) { showToast(e.message); }
   };
 
-  // Idempotent: books once from the locked price (pays from wallet). Tapping again
-  // returns the same booking instead of creating a duplicate.
+  // Idempotent: books once from the locked price (pays from wallet).
   const proceedPay = async () => {
     try {
       const r = await api.bookFromThread(threadId);
@@ -190,9 +216,14 @@ function Conversation({ threadId, peerName }: any) {
     // no offer yet
     return (
       <View style={st.offerBar}>
-        <TouchableOpacity onPress={() => openAmount()} style={[st.offerBtn, { alignSelf: 'flex-start' }]}>
-          <Text style={st.offerBtnTxt}>{t('proposePrice')}</Text>
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', gap: 8 }}>
+          <TouchableOpacity onPress={runAiNegotiation} style={[st.offerBtn, { backgroundColor: '#4f46e5', flex: 1.2 }]}>
+            <Text style={st.offerBtnTxt}>{aiLoading ? '🤖 Negotiating...' : '🤖 Start AI Negotiation'}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => openAmount()} style={[st.offerBtnGhost, { flex: 1 }]}>
+            <Text style={st.offerBtnGhostTxt}>{t('proposePrice')}</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     );
   };
@@ -204,12 +235,19 @@ function Conversation({ threadId, peerName }: any) {
       <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
         <ScrollView ref={scroller} style={{ flex: 1 }} contentContainerStyle={{ padding: 16 }}
           keyboardShouldPersistTaps="handled" onContentSizeChange={() => scroller.current?.scrollToEnd({ animated: true })}>
-          {msgs.length === 0 ? <Text style={{ color: colors.sub, textAlign: 'center', marginTop: 20 }}>{t('sayHi')}</Text> : null}
+          {aiLoading ? (
+            <View style={st.aiLoadingBanner}>
+              <ActivityIndicator color="#4f46e5" size="small" />
+              <Text style={st.aiLoadingTxt}>🤖 Customer Agent & Worker Agent Negotiating in Real-Time...</Text>
+            </View>
+          ) : null}
+          {msgs.length === 0 && !aiLoading ? <Text style={{ color: colors.sub, textAlign: 'center', marginTop: 20 }}>{t('sayHi')}</Text> : null}
           {msgs.map((m) => {
             const d = parseUTC(m.created_at) || new Date();
             const dk = d.toDateString();
             const showSep = dk !== lastDay; lastDay = dk;
             const sep = showSep ? <View style={st.sep}><Text style={st.sepTxt}>{dayLabel(d, t('today'), t('yesterday'))}</Text></View> : null;
+            
             if (m.type === 'system') {
               return (
                 <View key={m.id}>
@@ -218,6 +256,77 @@ function Conversation({ threadId, peerName }: any) {
                 </View>
               );
             }
+
+            if (m.type === 'ai_agent') {
+              const isCust = m.body.includes('Customer Agent');
+              return (
+                <View key={m.id}>
+                  {sep}
+                  <View style={[st.aiBubble, isCust ? st.aiCust : st.aiWork]}>
+                    <View style={st.aiBadgeRow}>
+                      <Text style={st.aiBadgeTxt}>{isCust ? '🤖 CUSTOMER AGENT' : '👷 WORKER AGENT'}</Text>
+                      <Text style={st.aiTag}>AgenticPay Local HF</Text>
+                    </View>
+                    <Text style={st.aiBody}>{m.body.replace(/^(🤖 Customer Agent:|👷 Worker Agent:)\s*/, '')}</Text>
+                    <Text style={st.time}>{fmtTime(d)}</Text>
+                  </View>
+                </View>
+              );
+            }
+
+            if (m.type === 'ai_analytics') {
+              let analytics: any = {};
+              try { analytics = JSON.parse(m.body); } catch {}
+              return (
+                <View key={m.id} style={st.analyticsCard}>
+                  {sep}
+                  <Text style={st.analyticsHeader}>🎉 AI Negotiation Settled!</Text>
+                  <View style={st.analyticsGrid}>
+                    <View style={st.analyticsItem}>
+                      <Text style={st.analyticsLabel}>🎯 Agreed Price</Text>
+                      <Text style={st.analyticsVal}>PKR {n(analytics.final_price || 0)}</Text>
+                    </View>
+                    <View style={st.analyticsItem}>
+                      <Text style={st.analyticsLabel}>💰 Saved</Text>
+                      <Text style={[st.analyticsVal, { color: colors.green700 }]}>PKR {n(analytics.savings || 0)}</Text>
+                    </View>
+                    <View style={st.analyticsItem}>
+                      <Text style={st.analyticsLabel}>⏱️ Duration</Text>
+                      <Text style={st.analyticsVal}>{analytics.duration_sec || 0.8}s</Text>
+                    </View>
+                    <View style={st.analyticsItem}>
+                      <Text style={st.analyticsLabel}>⭐ Win-Win</Text>
+                      <Text style={st.analyticsVal}>{analytics.satisfaction_score || '98%'}</Text>
+                    </View>
+                  </View>
+                  {iAmHirer ? (
+                    <TouchableOpacity onPress={proceedPay} style={[st.offerBtn, { marginTop: 12 }]}>
+                      <Text style={st.offerBtnTxt}>💳 Proceed to Payment (PKR {n(analytics.final_price)})</Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <View style={{ marginTop: 12, backgroundColor: '#dcfce7', padding: 10, borderRadius: 8, alignItems: 'center' }}>
+                      <Text style={{ color: colors.green700, fontWeight: '700' }}>✅ Price Agreed at PKR {n(analytics.final_price)} — Waiting for Customer Payment</Text>
+                    </View>
+                  )}
+                </View>
+              );
+            }
+
+            if (m.type === 'ai_failure') {
+              let fail: any = {};
+              try { fail = JSON.parse(m.body); } catch {}
+              return (
+                <View key={m.id} style={st.failureCard}>
+                  {sep}
+                  <Text style={st.failureHeader}>⚠️ AI Negotiation Unsettled</Text>
+                  <Text style={st.failureBody}>{fail.failure_reason || 'No agreement reached within maximum rounds.'}</Text>
+                  <TouchableOpacity onPress={runAiNegotiation} style={[st.offerBtn, { backgroundColor: '#d97706', marginTop: 10 }]}>
+                    <Text style={st.offerBtnTxt}>🔄 Restart Negotiation</Text>
+                  </TouchableOpacity>
+                </View>
+              );
+            }
+
             const mine = m.sender_id === userId;
             return (
               <View key={m.id}>
@@ -271,4 +380,22 @@ const st = StyleSheet.create({
   inputRow: { flexDirection: 'row', gap: 8, padding: 12, borderTopWidth: 1, borderTopColor: colors.border, backgroundColor: '#fff' },
   input: { flex: 1, borderWidth: 1, borderColor: colors.border, borderRadius: radius.pill, paddingHorizontal: 16, paddingVertical: 10, outlineStyle: 'none' as any },
   sendBtn: { backgroundColor: colors.green, borderRadius: radius.pill, paddingHorizontal: 18, justifyContent: 'center' },
+  aiBubble: { maxWidth: '85%', paddingHorizontal: 12, paddingVertical: 10, borderRadius: radius.lg, marginBottom: 10 },
+  aiCust: { alignSelf: 'flex-start', backgroundColor: '#eef2ff', borderWidth: 1, borderColor: '#c7d2fe' },
+  aiWork: { alignSelf: 'flex-end', backgroundColor: '#f0fdf4', borderWidth: 1, borderColor: '#bbf7d0' },
+  aiBadgeRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: 6, marginBottom: 4 },
+  aiBadgeTxt: { fontSize: 10, fontWeight: '800', color: '#3730a3' },
+  aiTag: { fontSize: 9, color: colors.sub, fontStyle: 'italic' },
+  aiBody: { fontSize: 13, color: colors.text, fontStyle: 'italic', marginTop: 2 },
+  analyticsCard: { backgroundColor: '#f0fdf4', borderColor: '#86efac', borderWidth: 1.5, borderRadius: radius.lg, padding: 14, marginVertical: 12 },
+  analyticsHeader: { fontSize: 16, fontWeight: '800', color: colors.green700, textAlign: 'center', marginBottom: 10 },
+  analyticsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, justifyContent: 'space-between' },
+  analyticsItem: { width: '48%', backgroundColor: '#fff', padding: 8, borderRadius: radius.md, borderWidth: 1, borderColor: '#dcfce7' },
+  analyticsLabel: { fontSize: 11, color: colors.sub, fontWeight: '600' },
+  analyticsVal: { fontSize: 14, fontWeight: '800', color: colors.text, marginTop: 2 },
+  failureCard: { backgroundColor: '#fffbeb', borderColor: '#fde68a', borderWidth: 1.5, borderRadius: radius.lg, padding: 14, marginVertical: 12 },
+  failureHeader: { fontSize: 15, fontWeight: '800', color: '#b45309', textAlign: 'center' },
+  failureBody: { fontSize: 12, color: colors.text, marginTop: 6, lineHeight: 18 },
+  aiLoadingBanner: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#eef2ff', borderColor: '#c7d2fe', borderWidth: 1.5, borderRadius: radius.md, padding: 12, marginBottom: 14 },
+  aiLoadingTxt: { fontSize: 12, fontWeight: '700', color: '#3730a3', flex: 1 },
 });

@@ -9,14 +9,16 @@ import { Badge, Btn, Card, Header, Loading, Row, Screen } from '../ui';
 
 export default function WorkerProfile() {
   const { params, navigate, goBack, showToast, t, n } = useApp();
-  const id = params.worker?.worker_id || params.worker?.user_id;
-  const [w, setW] = useState<any | null>(null);
+  const id = params.worker?.worker_id || params.worker?.user_id || params.worker?.id;
+  const [w, setW] = useState<any | null>(params.worker || null);
   const [reviews, setReviews] = useState<any[]>([]);
 
   useEffect(() => {
     (async () => {
-      try { setW(await api.publicWorker(id)); } catch (e: any) { showToast(e.message); }
-      try { setReviews(await api.workerReviews(id)); } catch {}
+      if (id) {
+        try { const fetched = await api.publicWorker(id); setW((prev: any) => ({ ...prev, ...fetched })); } catch {}
+        try { setReviews(await api.workerReviews(id)); } catch {}
+      }
     })();
   }, [id]);
   if (!w) return <View style={{ flex: 1 }}><Header title={t('worker')} onBack={goBack} /><Loading /></View>;
@@ -28,6 +30,14 @@ export default function WorkerProfile() {
   const message = async () => {
     try { const th = await api.createThread({ peer_id: id, job_id: params.job?.id }); navigate('chat', { threadId: th.id, peerName: w.full_name }); }
     catch (e: any) { showToast(e.message); }
+  };
+
+  const startInChatNegotiation = async () => {
+    try {
+      showToast('Opening AI Negotiation in Chat... 🤖');
+      const th = await api.createThread({ peer_id: id, job_id: params.job?.id });
+      navigate('chat', { threadId: th.id, peerName: w.full_name, autoAi: true });
+    } catch (e: any) { showToast(e.message); }
   };
 
   return (
@@ -54,7 +64,7 @@ export default function WorkerProfile() {
           <View style={st.bookedNote}><Text style={st.bookedNoteTxt}>{t('alreadyBookedNote')}</Text></View>
         ) : available ? (
           <>
-            <Btn title={t('negotiate')} onPress={() => navigate('bidding', { worker: w, job: params.job })} />
+            <Btn title={`🤖 ${t('negotiate')}`} onPress={startInChatNegotiation} />
             <Btn title={t('bookNow')} variant="outline" style={{ marginTop: 10 }}
               onPress={() => navigate('bookingPayment', { worker: w, job: params.job, agreed_price: w.rate_target || 2000 })} />
           </>

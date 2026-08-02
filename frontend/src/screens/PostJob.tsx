@@ -34,7 +34,7 @@ export default function PostJob() {
         navigate('bookings');
       } else {
         showToast(t('jobPosted'));
-        navigate('serviceListing', { category, job });
+        navigate('jobApplicants', { job });
       }
     } catch (e: any) { showToast(e.message); } finally { setLoading(false); }
   };

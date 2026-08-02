@@ -145,8 +145,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         login(r2.access_token, r2.user);
         const scr = p.get('screen');
         if (scr === 'bidding') {
+          // Legacy: demo URL used to open bidding screen — now go straight to chat with AI negotiation
           const ws = await api.matchWorkers(31.5204, 74.3587, 'plumber', 15);
-          if (ws && ws.length) setTimeout(() => { setScreen('bidding'); setParams({ worker: ws[0], autorun: true }); }, 60);
+          if (ws && ws.length) {
+            const w = ws[0];
+            const wid = w.worker_id || w.user_id || w.id;
+            try {
+              const th = await api.createThread({ peer_id: wid });
+              setTimeout(() => { setScreen('chat'); setParams({ threadId: th.id, peerName: w.full_name, autoAi: true }); }, 60);
+            } catch {}
+          }
         } else if (scr) {
           setTimeout(() => { setScreen(scr); setParams({}); }, 60);
         }

@@ -30,7 +30,7 @@ export default function Login() {
   const verify = async () => {
     setLoading(true);
     try {
-      const r = await api.loginVerify({ phone, code });
+      const r = await api.loginVerify({ phone, code, role });
       login(r.access_token, r.user);
     } catch (e: any) { showToast(e.message); } finally { setLoading(false); }
   };

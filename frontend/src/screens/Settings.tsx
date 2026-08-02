@@ -43,8 +43,12 @@ export default function Settings() {
           ? <>
               <Card onPress={() => navigate('workerProfileEdit')}><Text style={st.row}>{t('myWorkProfileRow')}</Text></Card>
               <Card onPress={() => navigate('kyc')}><Text style={st.row}>{t('identityKycRow')}</Text></Card>
+              <Card onPress={() => navigate('home')}><Text style={[st.row, { color: colors.green700 }]}>👤 Switch to Customer View (Find Workers)</Text></Card>
             </>
-          : <Card onPress={() => navigate('postJob')}><Text style={st.row}>{t('postJobRow')}</Text></Card>}
+          : <>
+              <Card onPress={() => navigate('postJob')}><Text style={st.row}>{t('postJobRow')}</Text></Card>
+              <Card onPress={() => navigate('workerDashboard')}><Text style={[st.row, { color: colors.green700 }]}>👷 Switch to Worker View (Find Work)</Text></Card>
+            </>}
 
         <Btn title={t('logout')} variant="danger" onPress={logout} style={{ marginTop: 8 }} />
         <Text style={st.footer}>{t('footer')}</Text>
