@@ -127,6 +127,29 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setTimeout(() => setToast(null), 2600);
   }, []);
 
+  // Register push notifications when the user logs in
+  useEffect(() => {
+    if (token && Platform.OS !== 'web') {
+      import('./utils/push').then(({ registerForPushNotificationsAsync }) => {
+        registerForPushNotificationsAsync().then(async (pushToken) => {
+          if (pushToken) {
+            try {
+              const AsyncStorage = (await import('@react-native-async-storage/async-storage')).default;
+              const savedToken = await AsyncStorage.getItem('expoPushToken');
+              if (savedToken !== pushToken) {
+                await api.registerDevice({ push_token: pushToken, platform: Platform.OS });
+                await AsyncStorage.setItem('expoPushToken', pushToken);
+                console.log('Device push token registered with backend');
+              }
+            } catch (e) {
+              console.error('Failed to register push token:', e);
+            }
+          }
+        });
+      });
+    }
+  }, [token]);
+
   // Demo convenience: ?demo=hirer|worker auto-logs-in (one-click demo / screenshots).
   useEffect(() => {
     if (typeof window === 'undefined' || !window.location) return; // web-only demo links; skip on native

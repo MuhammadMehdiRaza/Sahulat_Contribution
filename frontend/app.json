@@ -2,6 +2,7 @@
   "expo": {
     "name": "frontend",
     "slug": "frontend",
+    "scheme": "frontend",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
@@ -32,6 +33,13 @@
         "expo-audio",
         {
           "microphonePermission": "Kaam.pk uses your microphone for voice search and voice messages."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#ffffff"
         }
       ]
     ]

@@ -14,5 +14,10 @@ def notify(db: Session, user_id: str, type_: str, title: str, body: str, data: d
     db.add(note)
     db.flush()
     for device in db.query(Device).filter(Device.user_id == user_id).all():
-        adapters.push(device.push_token, title, body, data)
+        result = adapters.push(device.push_token, title, body, data)
+        if result and not result.get("sent"):
+            if result.get("error") == "DeviceNotRegistered":
+                import logging
+                logging.getLogger(__name__).warning(f"Removing invalid push token for user {user_id}")
+                db.delete(device)
     return note

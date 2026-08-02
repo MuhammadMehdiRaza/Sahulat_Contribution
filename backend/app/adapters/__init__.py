@@ -14,18 +14,15 @@ import tempfile
 
 from ..core.config import settings
 
-# ------------------------------------------------------------------ OTP (SMS/WhatsApp)
-_sent_otps: dict[str, str] = {}
+from .otp import get_otp_provider, _sent_otps
 
 
 def send_otp(phone: str, code: str, channel: str = "sms") -> dict:
-    _sent_otps[phone] = code  # dev aid; a real gateway would deliver the SMS/WhatsApp
-    return {"provider": settings.otp_provider, "channel": channel, "sent": True}
+    return get_otp_provider().send(phone, code, channel)
 
 
 def last_sent_otp(phone: str) -> str | None:
     return _sent_otps.get(phone)
-
 
 # ------------------------------------------------------------------ NADRA / Nishan
 def verify_identity(cnic: str, full_name: str, dob: str, card_issue_date: str) -> dict:
@@ -133,9 +130,11 @@ def transcribe(audio_b64: str, lang: str = "ur") -> dict:
     return {"text": "mujhe plumber chahiye ghar par, budget 2000 rupay", "lang": lang}
 
 
+from .push import get_push_provider
+
 # ------------------------------------------------------------------ Push (FCM/APNs)
 def push(token: str, title: str, body: str, data: dict | None = None) -> dict:
-    return {"provider": settings.push_provider, "sent": bool(token)}
+    return get_push_provider().send(token, title, body, data)
 
 
 # ------------------------------------------------------------------ Maps / Geocoding
