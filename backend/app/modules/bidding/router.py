@@ -17,6 +17,7 @@ from ..booking.service import create_booking
 from ..notifications.service import notify
 from ..payment import service as pay
 from .engine import run_negotiation
+from .orchestrator import NegotiationOrchestrator
 
 router = APIRouter(prefix="/bidding", tags=["bidding"])
 
@@ -29,6 +30,7 @@ class StartIn(BaseModel):
     hirer_max: Optional[float] = None
     worker_min: Optional[float] = None
     worker_target: Optional[float] = None
+    use_agentic: Optional[bool] = True
 
 
 class RoundOut(BaseModel):
@@ -37,6 +39,9 @@ class RoundOut(BaseModel):
     worker_offer: float
     gap: float
     converged: bool
+    hirer_message: Optional[str] = None
+    worker_message: Optional[str] = None
+    reasoning: Optional[str] = None
     model_config = {"from_attributes": True}
 
 
@@ -85,16 +90,43 @@ def start(payload: StartIn, db: Session = Depends(get_db), user: User = Depends(
     db.add(session)
     db.flush()
 
-    outcome = run_negotiation(
-        hirer_target=hirer_target, hirer_max=hirer_max, worker_min=worker_min, worker_target=worker_target,
-        max_rounds=settings.bid_max_rounds, converge_pkr=settings.bid_converge_pkr,
-        kappa_hirer=settings.bid_kappa_hirer, kappa_worker=settings.bid_kappa_worker,
-    )
+    outcome = None
+    if payload.use_agentic:
+        try:
+            orchestrator = NegotiationOrchestrator(
+                hirer_target=hirer_target,
+                hirer_max=hirer_max,
+                worker_min=worker_min,
+                worker_target=worker_target,
+                job_category=job.category or "general service",
+                job_description=job.description or "",
+                max_rounds=settings.bid_max_rounds,
+                converge_pkr=settings.bid_converge_pkr,
+            )
+            outcome = orchestrator.run_negotiation_sync()
+        except Exception:
+            outcome = None
+
+    if outcome is None:
+        outcome = run_negotiation(
+            hirer_target=hirer_target, hirer_max=hirer_max, worker_min=worker_min, worker_target=worker_target,
+            max_rounds=settings.bid_max_rounds, converge_pkr=settings.bid_converge_pkr,
+            kappa_hirer=settings.bid_kappa_hirer, kappa_worker=settings.bid_kappa_worker,
+        )
 
     round_rows = []
     for r in outcome["rounds"]:  # append-only audit trail / checkpoint per round
-        row = BidRound(session_id=session.id, round_no=r["round_no"], hirer_offer=r["hirer_offer"],
-                       worker_offer=r["worker_offer"], gap=r["gap"], converged=r["converged"])
+        row = BidRound(
+            session_id=session.id,
+            round_no=r["round_no"],
+            hirer_offer=r["hirer_offer"],
+            worker_offer=r["worker_offer"],
+            gap=r["gap"],
+            converged=r["converged"],
+            hirer_message=r.get("hirer_message"),
+            worker_message=r.get("worker_message"),
+            reasoning=r.get("reasoning"),
+        )
         db.add(row)
         round_rows.append(row)
 

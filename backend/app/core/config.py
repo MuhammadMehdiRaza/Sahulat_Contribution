@@ -36,7 +36,7 @@ class Settings(BaseSettings):
     # Business rules
     platform_fee_pct: float = 0.10
     match_default_radius_km: float = 15.0
-    match_max_radius_km: float = 100.0   # allow searching further out for far-away workers
+    match_max_radius_km: float = 2000.0   # allow searching across Pakistan for all registered workers
     emergency_radius_km: float = 5.0
     biometric_threshold: float = 0.75
 

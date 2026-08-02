@@ -26,13 +26,17 @@ WELCOME_BONUS = 1000.0  # new customers get PKR 1000 in their wallet to try the 
 def _create_role_profile(db: Session, user: User) -> None:
     """Role-specific setup on account creation: worker profile+wallet, or hirer wallet+bonus."""
     if user.role == "worker":
-        db.add(WorkerProfile(user_id=user.id))
-        db.add(Wallet(user_id=user.id, balance=0))
+        if not db.query(WorkerProfile).filter(WorkerProfile.user_id == user.id).first():
+            db.add(WorkerProfile(user_id=user.id))
+        if not db.query(Wallet).filter(Wallet.user_id == user.id).first():
+            db.add(Wallet(user_id=user.id, balance=0))
     else:
-        db.add(HirerProfile(user_id=user.id))
-        db.add(Wallet(user_id=user.id, balance=WELCOME_BONUS))
-        db.add(WalletTxn(user_id=user.id, amount=WELCOME_BONUS, direction="credit",
-                         type="bonus", memo="Welcome bonus"))
+        if not db.query(HirerProfile).filter(HirerProfile.user_id == user.id).first():
+            db.add(HirerProfile(user_id=user.id))
+        if not db.query(Wallet).filter(Wallet.user_id == user.id).first():
+            db.add(Wallet(user_id=user.id, balance=WELCOME_BONUS))
+            db.add(WalletTxn(user_id=user.id, amount=WELCOME_BONUS, direction="credit",
+                             type="bonus", memo="Welcome bonus"))
 
 
 # -------------------------------------------------------------------- schemas
@@ -73,6 +77,7 @@ class LoginRequest(BaseModel):
 class LoginVerifyRequest(BaseModel):
     phone: str
     code: str
+    role: Optional[Role] = None
 
 
 class ForgotStartRequest(BaseModel):
@@ -222,7 +227,11 @@ def login_verify(payload: LoginVerifyRequest, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.phone == payload.phone).first()
     if user is None:
         raise HTTPException(404, "Account not found")
+    if payload.role:
+        user.role = payload.role
+        _create_role_profile(db, user)
     db.commit()
+    db.refresh(user)
     token = create_access_token(user.id, user.role)
     return TokenOut(access_token=token, user=UserOut.model_validate(user), created=False)
 

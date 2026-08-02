@@ -208,6 +208,9 @@ class BidRound(Base):
     worker_offer = Money()
     gap = Money()
     converged = mapped_column(Boolean, default=False)
+    hirer_message = mapped_column(Text, nullable=True)
+    worker_message = mapped_column(Text, nullable=True)
+    reasoning = mapped_column(Text, nullable=True)
     created_at = mapped_column(DateTime, default=now)
 
 
