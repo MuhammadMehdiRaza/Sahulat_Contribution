@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import Icon from '../Icon';
 import { api } from '../api';
 import { fmtDate } from '../dates';
 import { useApp } from '../state';
@@ -35,7 +36,7 @@ export default function WorkerProfile() {
       <Screen>
         <Card>
           <Row style={{ justifyContent: 'space-between' }}>
-            <Text style={st.big}>⭐ {n(Number(w.rating_avg).toFixed(1))} <Text style={st.sub}>({n(w.rating_count)})</Text></Text>
+            <Text style={st.big}><Icon name="star" size={20} color={colors.amber} /> {n(Number(w.rating_avg).toFixed(1))} <Text style={st.sub}>({n(w.rating_count)})</Text></Text>
             <Badge label={w.availability === 'available' ? t('available') : w.availability} />
           </Row>
           <Row style={{ gap: 18, marginTop: 10 }}>
@@ -44,7 +45,7 @@ export default function WorkerProfile() {
           </Row>
           {w.bio ? <Text style={st.bio}>{w.bio}</Text> : null}
           <Row style={{ gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
-            {badges.length ? badges.map((b) => <Badge key={b} label={`✓ ${b}`} bg="#dcfce7" color={colors.green700} />)
+            {badges.length ? badges.map((b) => <Badge key={b} label={<><Icon name="check" size={12} color={colors.green700} /> {b}</>} bg="#dcfce7" color={colors.green700} />)
               : <Text style={st.sub}>{t('noBadges')}</Text>}
           </Row>
         </Card>
@@ -69,7 +70,7 @@ export default function WorkerProfile() {
           <Card key={r.id} style={{ padding: 12 }}>
             <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
               <Text style={st.reviewer} numberOfLines={1}>{r.rater_name}</Text>
-              <Text style={st.stars}>{'⭐'.repeat(r.stars)}</Text>
+              <Text style={st.stars}>{Array.from({ length: r.stars }).map((_, i) => <Icon key={i} name="star" size={12} color={colors.amber} />)}</Text>
             </Row>
             {r.created_at ? <Text style={st.reviewDate}>{fmtDate(r.created_at)}</Text> : null}
             <Text style={st.reviewTxt}>{r.comment}</Text>

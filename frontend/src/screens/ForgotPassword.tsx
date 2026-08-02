@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import Icon from '../Icon';
 import { api } from '../api';
 import { useApp } from '../state';
 import { colors, radius } from '../theme';
@@ -43,7 +44,7 @@ export default function ForgotPassword() {
       <ScrollView contentContainerStyle={s.wrap} keyboardShouldPersistTaps="handled">
         <View style={s.topBar}><LangToggle /></View>
         <View style={s.logo}>
-          <Text style={{ fontSize: 50 }}>🔑</Text>
+          <Icon name="key" size={50} color={colors.green700} />
           <Text style={s.brand}>Kaam.pk</Text>
         </View>
 
@@ -67,7 +68,7 @@ export default function ForgotPassword() {
         )}
 
         <TouchableOpacity onPress={() => navigate('login')} style={{ marginTop: 16 }}>
-          <Text style={s.link}>← {t('loginBtn')}</Text>
+          <Text style={s.link}><Icon name="arrowBack" size={16} color={colors.green} /> {t('loginBtn')}</Text>
         </TouchableOpacity>
       </ScrollView>
     </KeyboardAvoidingView>

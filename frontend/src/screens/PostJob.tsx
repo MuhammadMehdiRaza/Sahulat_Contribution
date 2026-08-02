@@ -3,6 +3,7 @@ import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { api } from '../api';
 import BottomNav from '../BottomNav';
 import { endOfDayISO } from '../dates';
+import Icon, { IconName } from '../Icon';
 import { useApp } from '../state';
 import { colors, radius, services } from '../theme';
 import { Btn, DatePickerField, Field, Header, Screen } from '../ui';
@@ -12,8 +13,8 @@ export default function PostJob() {
   const emergency = !!params?.emergency;
   const [category, setCategory] = useState(params?.category || 'plumber');
   const [description, setDescription] = useState('');
-  const [target, setTarget] = useState('2000');
-  const [max, setMax] = useState('3000');
+  const [target, setTarget] = useState(params?.budget_target ? String(params.budget_target) : '2000');
+  const [max, setMax] = useState(params?.budget_target ? String(Math.round(params.budget_target * 1.5)) : '3000');
   const [deadline, setDeadline] = useState(new Date(Date.now() + 3 * 86400000));  // default: 3 days out
   const [loading, setLoading] = useState(false);
   // The job is posted at the customer's current GPS location (workers are matched around it).
@@ -46,8 +47,9 @@ export default function PostJob() {
         <View style={st.cats}>
           {services.map((s) => (
             <TouchableOpacity key={s.key} onPress={() => setCategory(s.key)}
-              style={[st.cat, category === s.key && st.catOn]}>
-              <Text>{s.icon} {t('svc_' + s.key)}</Text>
+              style={[st.cat, category === s.key && st.catOn, { flexDirection: 'row', alignItems: 'center', gap: 6 }]}>
+              <Icon name={s.key as IconName} size={16} color={colors.green} />
+              <Text>{t('svc_' + s.key)}</Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -57,8 +59,9 @@ export default function PostJob() {
           <View style={{ flex: 1 }}><Field label={t('budgetMax')} value={max} onChangeText={setMax} keyboardType="number-pad" /></View>
         </View>
         <Text style={st.label}>{t('jobLocationLbl')}</Text>
-        <View style={st.jobLocRow}>
-          <Text style={st.jobLocTxt}>📍 {locating ? t('locating') : place}</Text>
+        <View style={[st.jobLocRow, { flexDirection: 'row', alignItems: 'center', gap: 6 }]}>
+          <Icon name="location" size={16} color={colors.green} />
+          <Text style={st.jobLocTxt}>{locating ? t('locating') : place}</Text>
         </View>
         <Text style={st.jobLocHint}>{t('jobLocationHint')}</Text>
 

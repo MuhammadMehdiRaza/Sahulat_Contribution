@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { api } from '../api';
+import Icon from '../Icon';
 import { useApp } from '../state';
 import { colors } from '../theme';
 import { Btn, Card, Field, Header, Screen } from '../ui';
@@ -31,7 +32,7 @@ export default function Rating() {
           <View style={st.stars}>
             {[1, 2, 3, 4, 5].map((n) => (
               <TouchableOpacity key={n} onPress={() => setStars(n)}>
-                <Text style={[st.star, { opacity: n <= stars ? 1 : 0.25 }]}>⭐</Text>
+                <Icon name="star" size={40} color={colors.amber} style={{ opacity: n <= stars ? 1 : 0.25 }} />
               </TouchableOpacity>
             ))}
           </View>

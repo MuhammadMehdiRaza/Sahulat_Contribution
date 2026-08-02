@@ -13,15 +13,20 @@ chat, and full **English / Urdu / Roman-Urdu** support.
 
 ## 1. Install once
 
-Prerequisites: **Python 3.12+** (python.org, tick "Add to PATH") and **Node.js 20+** (nodejs.org).
+Prerequisites: **Python 3.13** (python.org, tick "Add to PATH") and **Node.js 20+** (nodejs.org).
+
+> Pick **Python 3.13**, not 3.14: the app runs on either, but the offline **voice** engine
+> (Whisper) only installs on Python **3.10–3.13**. If your C: drive is low on space you can put
+> the venv on another drive, e.g. `py -3.13 -m venv D:\sahulat_venv`.
 
 > Windows uses `.venv\Scripts\python`. macOS/Linux use `.venv/bin/python`.
 
 **Backend**
 ```
 cd backend
-python -m venv .venv
+py -3.13 -m venv .venv                                             # Windows (or: python -m venv .venv)
 .venv\Scripts\python -m pip install -r requirements.txt
+.venv\Scripts\python -m pip install -r requirements-whisper.txt   # optional — enables real offline voice
 .venv\Scripts\python -m app.demo_seed          # sample data (5 verified workers + a demo customer)
 ```
 
@@ -32,7 +37,6 @@ npm install
 ```
 
 ---
-
 ## 2. Run it on your PHONE (Expo Go) 📱
 
 This is the main way to use the app on a real phone.
@@ -74,7 +78,26 @@ npm run web        # then open http://localhost:8081
 
 ---
 
-## 4. Logging in
+## 4. Turn on the voice assistant 🎙️ (Urdu / English / Roman-Urdu)
+
+Tap the mic on any screen and say a command — e.g. *"chat pe le jao"*, *"find a plumber"*,
+*"wallet kholo"*, *"meri booking dikhao"*, *"wapas jao"* (go back).
+
+- **In the browser (Chrome):** already works — the browser does the speech recognition.
+- **On the phone:** the backend converts speech to text with an **offline** engine (Whisper).
+  Install it once, then start the backend in voice mode:
+  ```
+  cd backend
+  .venv\Scripts\python -m pip install -r requirements-whisper.txt   # once
+  .\run_voice.ps1                                                   # starts the API with voice ON
+  ```
+
+Without this, the backend stays in **demo mode** and voice returns one fixed placeholder sentence.
+Full step-by-step: **`backend/README.md` → Voice setup**.
+
+---
+
+## 5. Logging in
 
 **Demo accounts** (password **`demo1234`**):
 
@@ -90,7 +113,7 @@ Or **Sign up**: pick a language → Sign up → role, name, username, password, 
 
 ---
 
-## 5. Backend tests
+## 6. Backend tests
 ```
 cd backend
 .venv\Scripts\python -m pytest

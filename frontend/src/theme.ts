@@ -9,14 +9,14 @@ export const colors = {
   redDark: '#dc2626',
   amber: '#f59e0b',
   blue: '#2563eb',
-  text: '#111827',
-  sub: '#6b7280',
-  muted: '#9ca3af',
-  border: '#e5e7eb',
-  bg: '#f9fafb',
+  text: '#0f172a',      // slate-900 — richer, modern
+  sub: '#475569',       // slate-600
+  muted: '#94a3b8',     // slate-400
+  border: '#e2e8f0',    // slate-200
+  bg: '#f8fafc',        // slate-50 — cool, clean
   card: '#ffffff',
   white: '#ffffff',
-  backdrop: '#e5e7eb',
+  backdrop: '#e2e8f0',
 };
 
 export const radius = { sm: 8, md: 12, lg: 16, xl: 22, pill: 999 };
@@ -35,17 +35,18 @@ export const shadow = {
   header: { shadowColor: '#0f172a', shadowOpacity: 0.12, shadowRadius: 16, shadowOffset: { width: 0, height: 6 }, elevation: 6 },
 };
 
+// Service category `key` doubles as the Icon name (see src/Icon.tsx).
 export const services = [
-  { key: 'plumber', name: 'Plumber', urdu: 'نلکے والا', icon: '🔧' },
-  { key: 'electrician', name: 'Electrician', urdu: 'بجلی مستری', icon: '⚡' },
-  { key: 'carpenter', name: 'Carpenter', urdu: 'ترکھان', icon: '🪚' },
-  { key: 'cleaner', name: 'Cleaner', urdu: 'صفائی', icon: '🧹' },
-  { key: 'cook', name: 'Cook', urdu: 'باورچی', icon: '🍳' },
-  { key: 'household', name: 'Household', urdu: 'گھریلو', icon: '🏠' },
+  { key: 'plumber', name: 'Plumber', urdu: 'نلکے والا' },
+  { key: 'electrician', name: 'Electrician', urdu: 'بجلی مستری' },
+  { key: 'carpenter', name: 'Carpenter', urdu: 'ترکھان' },
+  { key: 'cleaner', name: 'Cleaner', urdu: 'صفائی' },
+  { key: 'cook', name: 'Cook', urdu: 'باورچی' },
+  { key: 'household', name: 'Household', urdu: 'گھریلو' },
 ];
 
 export const paymentMethods = [
-  { key: 'escrow_easypaisa', name: 'Easypaisa (Escrow)', icon: '📱' },
-  { key: 'escrow_jazzcash', name: 'JazzCash (Escrow)', icon: '📱' },
-  { key: 'cod', name: 'Cash on Delivery', icon: '💵' },
+  { key: 'escrow_easypaisa', name: 'Easypaisa (Escrow)', icon: 'phone' },
+  { key: 'escrow_jazzcash', name: 'JazzCash (Escrow)', icon: 'phone' },
+  { key: 'cod', name: 'Cash on Delivery', icon: 'cash' },
 ];

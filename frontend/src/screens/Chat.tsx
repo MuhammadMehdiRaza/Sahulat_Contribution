@@ -1,11 +1,13 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { api } from '../api';
+import Icon from '../Icon';
 import BottomNav from '../BottomNav';
 import { dayLabel, fmtTime, parseUTC, relLabel } from '../dates';
 import { useApp } from '../state';
 import { colors, radius } from '../theme';
 import { Card, Header, Screen } from '../ui';
+import MicButton from '../voice/MicButton';
 
 export default function Chat() {
   const { params } = useApp();
@@ -31,9 +33,9 @@ function ThreadList() {
       <Screen>
         {threads && threads.length > 0 ? (
           <View style={st.search}>
-            <Text style={{ fontSize: 15 }}>🔍</Text>
+            <Icon name="search" size={15} color={colors.muted} />
             <TextInput value={q} onChangeText={setQ} placeholder={t('searchChats')} placeholderTextColor={colors.muted} style={st.searchInput} />
-            {q ? <TouchableOpacity onPress={() => setQ('')}><Text style={{ color: colors.muted, fontSize: 16 }}>✕</Text></TouchableOpacity> : null}
+            {q ? <TouchableOpacity onPress={() => setQ('')}><Icon name="close" size={16} color={colors.muted} /></TouchableOpacity> : null}
           </View>
         ) : null}
         {threads === null ? null : threads.length === 0
@@ -69,7 +71,7 @@ function ThreadList() {
 }
 
 function Conversation({ threadId, peerName }: any) {
-  const { user, navigate, goBack, showToast, t, n } = useApp();
+  const { user, navigate, goBack, showToast, t, n, language } = useApp();
   const userId = user?.id;
   const [msgs, setMsgs] = useState<any[]>([]);
   const [offer, setOffer] = useState<any | null>(null);
@@ -90,7 +92,7 @@ function Conversation({ threadId, peerName }: any) {
 
   const send = async () => {
     if (!text.trim()) return;
-    try { await api.sendMessage(threadId, { type: 'text', body: text, lang: 'en' }); setText(''); load(); } catch {}
+    try { await api.sendMessage(threadId, { type: 'text', body: text, lang: language }); setText(''); load(); } catch {}
   };
 
   const sendOffer = async () => {
@@ -146,7 +148,7 @@ function Conversation({ threadId, peerName }: any) {
     if (!offer.worker_available) {
       return (
         <View style={st.offerBar}>
-          <Text style={st.offerSub}>💬 {t('priceWhenOnline', { name })}</Text>
+          <Text style={st.offerSub}><Icon name="chat" size={12} color={colors.sub} /> {t('priceWhenOnline', { name })}</Text>
         </View>
       );
     }
@@ -232,6 +234,8 @@ function Conversation({ threadId, peerName }: any) {
         {renderOfferBar()}
 
         <View style={st.inputRow}>
+          <MicButton size={22} style={{ justifyContent: 'center', paddingHorizontal: 2 }}
+            onText={(txt) => setText((prev) => (prev ? prev + ' ' : '') + txt)} />
           <TextInput value={text} onChangeText={setText} placeholder={t('typeMessage')} placeholderTextColor={colors.muted}
             style={st.input} onSubmitEditing={send} returnKeyType="send" />
           <TouchableOpacity onPress={send} style={st.sendBtn}><Text style={{ color: '#fff', fontWeight: '700' }}>{t('send')}</Text></TouchableOpacity>

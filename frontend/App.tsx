@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { AppProvider, useApp } from './src/state';
 import { colors } from './src/theme';
 import { Toast } from './src/ui';
+import VoiceAssistant from './src/voice/VoiceAssistant';
 
 import Onboarding from './src/screens/Onboarding';
 import Login from './src/screens/Login';
@@ -39,12 +40,13 @@ const SCREENS: Record<string, any> = {
 };
 
 function Router() {
-  const { screen, toast } = useApp();
+  const { screen, toast, token } = useApp();
   const Comp = SCREENS[screen] || Home;
   return (
     <>
       <Comp />
       {toast ? <Toast msg={toast} /> : null}
+      {token ? <VoiceAssistant /> : null}
     </>
   );
 }

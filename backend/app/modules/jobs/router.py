@@ -21,16 +21,29 @@ from ..notifications.service import notify
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])
 
-# category keyword table for NL extraction (English + Roman-Urdu cues)
+# category keyword table for NL extraction (English + Roman-Urdu + Urdu-script cues)
 _CATEGORY_KEYWORDS = {
-    "plumber": ["plumber", "plumbing", "nal", "pipe", "leak"],
-    "electrician": ["electrician", "electric", "bijli", "wiring", "switch"],
-    "carpenter": ["carpenter", "wood", "lakri", "furniture", "door"],
-    "cleaner": ["cleaner", "cleaning", "safai", "clean"],
-    "cook": ["cook", "chef", "khana", "cooking"],
-    "household": ["maid", "househelp", "household", "naukar", "helper"],
+    "plumber": ["plumber", "plumbing", "nal", "nalka", "pipe", "leak", "tap", "toti",
+                "نلکا", "نل", "پلمبر", "پائپ", "لیک", "ٹونٹی", "ٹوٹی"],
+    "electrician": ["electrician", "electric", "bijli", "wiring", "switch", "current", "mistri",
+                    "بجلی", "الیکٹریشن", "تار", "سوئچ", "وائرنگ", "کرنٹ", "مستری"],
+    "carpenter": ["carpenter", "wood", "lakri", "furniture", "door", "tarkhan",
+                  "ترکھان", "بڑھئی", "لکڑی", "فرنیچر", "دروازہ"],
+    "cleaner": ["cleaner", "cleaning", "safai", "clean", "jharu",
+                "صفائی", "صاف", "کلینر", "جھاڑو"],
+    "cook": ["cook", "chef", "khana", "cooking", "bawarchi", "pakana",
+             "باورچی", "کھانا", "پکانا", "شیف"],
+    "household": ["maid", "househelp", "household", "naukar", "helper", "masi", "mulazim", "khadima",
+                  "نوکر", "ملازم", "گھریلو", "میڈ", "ماسی", "خادمہ", "کام والی"],
 }
 _CITIES = ["lahore", "karachi", "islamabad", "rawalpindi"]
+# Urdu-script city names -> canonical English key
+_CITY_ALIASES = {
+    "لاہور": "lahore", "کراچی": "karachi", "اسلام آباد": "islamabad",
+    "اسلام‌آباد": "islamabad", "راولپنڈی": "rawalpindi", "پنڈی": "rawalpindi",
+}
+# Urdu-Indic (۰-۹) and Arabic-Indic (٠-٩) digits -> ASCII so budgets spoken in Urdu still parse.
+_URDU_DIGITS = str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789")
 
 
 # -------------------------------------------------------------------- schemas
@@ -120,15 +133,22 @@ class NlSearchOut(BaseModel):
 
 # -------------------------------------------------------------------- helpers
 def extract_intent(text: str) -> dict:
-    """Rule-based intent extraction — category, location, budget + confidence."""
-    low = (text or "").lower()
+    """Rule-based intent extraction — category, location, budget + confidence.
+
+    Accepts English, Roman-Urdu, and Urdu-script input (including Urdu-Indic digits).
+    """
+    raw = text or ""
+    low = raw.lower()
     category = None
     for cat, words in _CATEGORY_KEYWORDS.items():
         if any(w in low for w in words):
             category = cat
             break
     location = next((c for c in _CITIES if c in low), None)
-    m = re.search(r"(\d{3,6})", low.replace(",", ""))
+    if location is None:  # Urdu-script city names
+        location = next((v for k, v in _CITY_ALIASES.items() if k in raw), None)
+    norm = raw.translate(_URDU_DIGITS)  # Urdu digits -> ASCII for the budget regex
+    m = re.search(r"(\d{3,6})", norm.replace(",", "").replace("،", ""))
     budget = float(m.group(1)) if m else None
     signals = sum(x is not None for x in (category, budget, location))
     confidence = round(min(1.0, 0.34 * signals + (0.34 if category else 0)), 2)

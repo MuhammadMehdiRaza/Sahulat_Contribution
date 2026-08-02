@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { api } from '../api';
+import Icon from '../Icon';
 import { useApp } from '../state';
 import { colors } from '../theme';
 import { Badge, Btn, Card, EmptyState, Header, Row, Screen } from '../ui';
@@ -45,7 +46,7 @@ export default function JobApplicants() {
           </Card>
         ) : null}
         {apps === null ? <ActivityIndicator color={colors.green} />
-          : apps.length === 0 ? <EmptyState icon="🙋" title={t('noApplicants')} />
+          : apps.length === 0 ? <EmptyState icon={<Icon name="interested" size={44} color={colors.muted} />} title={t('noApplicants')} />
           : apps.map((a) => (
             <Card key={a.worker_id}>
               <Row style={{ justifyContent: 'space-between' }}>
@@ -54,12 +55,12 @@ export default function JobApplicants() {
               </Row>
               <Text style={st.skill}>{(a.skills || []).map((k: string) => t('svc_' + k)).join(', ')}</Text>
               <Row style={{ gap: 14, marginTop: 6, flexWrap: 'wrap' }}>
-                <Text style={st.meta}>⭐ {n(Number(a.rating_avg).toFixed(1))} ({n(a.rating_count)})</Text>
-                <Text style={st.meta}>✅ {n(a.jobs_completed)} {t('jobsDone')}</Text>
-                {a.distance_km != null ? <Text style={st.meta}>📍 {n(a.distance_km)} km</Text> : null}
+                <Text style={st.meta}><Icon name="star" size={12} color={colors.amber} /> {n(Number(a.rating_avg).toFixed(1))} ({n(a.rating_count)})</Text>
+                <Text style={st.meta}><Icon name="verified" size={12} color={colors.green} /> {n(a.jobs_completed)} {t('jobsDone')}</Text>
+                {a.distance_km != null ? <Text style={st.meta}><Icon name="location" size={12} color={colors.sub} /> {n(a.distance_km)} km</Text> : null}
               </Row>
               <Row style={{ gap: 8, marginTop: 8, flexWrap: 'wrap' }}>
-                {badges(a.badges).map((b) => <Badge key={b} label={`✓ ${b}`} bg="#dcfce7" color={colors.green700} />)}
+                {badges(a.badges).map((b) => <Badge key={b} label={<><Icon name="check" size={11} color={colors.green700} /> {b}</>} bg="#dcfce7" color={colors.green700} />)}
               </Row>
               {a.message ? <Text style={st.note}>{t('workerMessage', { msg: a.message })}</Text> : null}
 

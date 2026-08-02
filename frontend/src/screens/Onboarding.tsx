@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import Icon, { IconName } from '../Icon';
 import { LANGUAGES } from '../i18n';
 import { useApp } from '../state';
 import { colors, radius } from '../theme';
@@ -10,9 +11,9 @@ export default function Onboarding() {
   const [step, setStep] = useState(0); // 0 = language, 1..3 = slides
   const [picked, setPicked] = useState(false);
   const slides = [
-    { icon: '🏠', title: t('onboard1Title'), desc: t('onboard1Desc') },
-    { icon: '✅', title: t('onboard2Title'), desc: t('onboard2Desc') },
-    { icon: '⚡', title: t('onboard3Title'), desc: t('onboard3Desc') },
+    { icon: 'home', title: t('onboard1Title'), desc: t('onboard1Desc') },
+    { icon: 'verified', title: t('onboard2Title'), desc: t('onboard2Desc') },
+    { icon: 'electrician', title: t('onboard3Title'), desc: t('onboard3Desc') },
   ];
   const next = () => {
     if (step === 0 && !picked) return;
@@ -31,13 +32,13 @@ export default function Onboarding() {
               style={[s.lang, language === l.id && picked && s.langActive]}>
               <Text style={{ fontSize: 26 }}>{l.flag}</Text>
               <Text style={s.langName}>{l.name}</Text>
-              {language === l.id && picked ? <Text style={s.check}>✓</Text> : null}
+              {language === l.id && picked ? <Icon name="check" size={18} color={colors.green} style={{ marginStart: 'auto' }} /> : null}
             </TouchableOpacity>
           ))}
         </View>
       ) : (
         <View style={s.center}>
-          <Text style={s.slideIcon}>{slides[step - 1].icon}</Text>
+          <Icon name={slides[step - 1].icon as IconName} size={88} color={colors.green} style={{ marginBottom: 24 }} />
           <Text style={s.slideTitle}>{slides[step - 1].title}</Text>
           <Text style={s.slideDesc}>{slides[step - 1].desc}</Text>
         </View>

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { api } from '../api';
+import Icon from '../Icon';
 import { useApp } from '../state';
 import { colors, radius } from '../theme';
 import { Badge, Btn, Card, Field, Header, Row, Screen } from '../ui';
@@ -74,7 +75,7 @@ export default function Bidding() {
               <Card key={r.round_no} style={{ padding: 12 }}>
                 <Row style={{ justifyContent: 'space-between' }}>
                   <Text style={st.round}>{t('round')} {n(r.round_no)}</Text>
-                  {r.converged ? <Badge label="✓" /> : <Text style={st.gap}>Δ PKR {n(r.gap)}</Text>}
+                  {r.converged ? <Badge label={<Icon name="check" size={13} color={colors.green700} />} /> : <Text style={st.gap}>Δ PKR {n(r.gap)}</Text>}
                 </Row>
                 <Row style={{ justifyContent: 'space-between', marginTop: 6 }}>
                   <Text style={st.offer}>{t('hirerLbl')}: <Text style={{ fontWeight: '800' }}>PKR {n(r.hirer_offer)}</Text></Text>

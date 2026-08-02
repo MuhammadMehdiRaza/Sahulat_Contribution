@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { api } from '../api';
+import Icon from '../Icon';
 import { useApp } from '../state';
 import { colors, paymentMethods, radius } from '../theme';
 import { Btn, Card, Header, Row, Screen } from '../ui';
@@ -58,9 +59,9 @@ export default function BookingPayment() {
         <Text style={st.section}>{t('paymentMethod')}</Text>
         {paymentMethods.map((m) => (
           <TouchableOpacity key={m.key} onPress={() => setMethod(m.key)} style={[st.method, method === m.key && st.methodOn]}>
-            <Text style={{ fontSize: 22 }}>{m.icon}</Text>
+            <Icon name={m.icon as any} size={22} color={colors.text} />
             <Text style={st.methodName}>{m.name}</Text>
-            {method === m.key ? <Text style={st.tick}>✓</Text> : null}
+            {method === m.key ? <Icon name="check" size={18} color={colors.green} style={st.tick} /> : null}
           </TouchableOpacity>
         ))}
         <View style={st.info}>
@@ -69,7 +70,7 @@ export default function BookingPayment() {
 
         {usesWallet ? (
           <Row style={[st.walletRow, insufficient && { borderColor: '#fecaca', backgroundColor: '#fef2f2' }]}>
-            <Text style={{ fontSize: 18 }}>💳</Text>
+            <Icon name="card" size={18} color={colors.green700} />
             <Text style={st.walletTxt}>{t('paidFromWallet')} · {t('walletBalance')}: PKR {n(balance ?? 0)}</Text>
           </Row>
         ) : null}

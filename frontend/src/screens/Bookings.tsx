@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { api } from '../api';
 import BottomNav from '../BottomNav';
+import Icon from '../Icon';
 import { fmtDate, isPast } from '../dates';
 import { useApp } from '../state';
 import { colors } from '../theme';
@@ -40,10 +41,10 @@ export default function Bookings() {
           <Badge label={s.label} bg={s.bg} color={s.fg} />
         </Row>
         {peer ? <Text style={st.peer}>{t('withPeer', { name: peer })}</Text> : null}
-        {b.created_at ? <Text style={st.date}>📅 {fmtDate(b.created_at)}</Text> : null}
+        {b.created_at ? <Text style={st.date}><Icon name="calendar" size={12} color={colors.muted} /> {fmtDate(b.created_at)}</Text> : null}
         {b.deadline && ACTIVE.includes(b.status) ? (
           <Text style={[st.date, isPast(b.deadline) && { color: colors.redDark, fontWeight: '700' }]}>
-            ⏰ {isPast(b.deadline) ? t('overdue') : t('dueBy', { date: fmtDate(b.deadline) })}
+            <Icon name="time" size={12} color={isPast(b.deadline) ? colors.redDark : colors.muted} /> {isPast(b.deadline) ? t('overdue') : t('dueBy', { date: fmtDate(b.deadline) })}
           </Text>
         ) : null}
         <Row style={{ justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
@@ -59,7 +60,7 @@ export default function Bookings() {
       <Header title={t('navBookings')} subtitle={isWorker ? t('bookingsTitleW') : t('bookingsTitleH')} />
       <Screen>
         {items === null ? null : items.length === 0 ? (
-          <EmptyState icon="📋" title={t('noBookings')} />
+          <EmptyState icon={<Icon name="bookings" size={44} color={colors.muted} />} title={t('noBookings')} />
         ) : (
           <>
             {active.length > 0 && <Text style={st.section}>{t('bookingsActive')}</Text>}

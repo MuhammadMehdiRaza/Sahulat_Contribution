@@ -1,14 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { api } from '../api';
+import Icon, { IconName } from '../Icon';
 import { fmtDateTime } from '../dates';
 import { useApp } from '../state';
 import { colors, radius } from '../theme';
 import { Btn, Card, Header, Row, Screen } from '../ui';
 
 const PROVIDERS = [
-  { key: 'easypaisa', label: 'Easypaisa', icon: '📲' },
-  { key: 'jazzcash', label: 'JazzCash', icon: '📱' },
+  { key: 'easypaisa', label: 'Easypaisa', icon: 'phone' },
+  { key: 'jazzcash', label: 'JazzCash', icon: 'phone' },
 ];
 
 export default function Wallet() {
@@ -51,7 +52,7 @@ export default function Wallet() {
             <Row style={{ gap: 10, marginBottom: 12 }}>
               {PROVIDERS.map((p) => (
                 <TouchableOpacity key={p.key} onPress={() => setProvider(p.key)} style={[st.prov, provider === p.key && st.provOn]}>
-                  <Text style={{ fontSize: 20 }}>{p.icon}</Text>
+                  <Icon name={p.icon as IconName} size={20} color={colors.text} />
                   <Text style={st.provTxt}>{p.label}</Text>
                 </TouchableOpacity>
               ))}

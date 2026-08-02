@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import {
   ActivityIndicator, KeyboardAvoidingView, Linking, Modal, Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View,
 } from 'react-native';
+import Icon, { IconName } from './Icon';
 import { useApp } from './state';
 import { colors, gradients, radius, shadow } from './theme';
 
@@ -55,7 +56,7 @@ export function Header({ title, subtitle, onBack, right }: any) {
     <LinearGradient colors={gradients.header as any} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={[s.header, shadow.header]}>
       <View style={{ flexDirection: 'row', alignItems: 'center' }}>
         {onBack ? (
-          <TouchableOpacity onPress={onBack} style={s.backBtn}><Text style={s.backTxt}>{rtl ? '›' : '‹'}</Text></TouchableOpacity>
+          <TouchableOpacity onPress={onBack} style={s.backBtn}><Icon name={rtl ? 'forward' : 'back'} size={26} color="#fff" /></TouchableOpacity>
         ) : null}
         <View style={{ flex: 1 }}>
           <Text style={s.headerTitle}>{title}</Text>
@@ -74,8 +75,9 @@ export function LangToggle({ light }: { light?: boolean }) {
   const label: any = { en: 'EN', ur: 'اردو', roman_ur: 'RU' };
   return (
     <TouchableOpacity onPress={() => setLanguage(order[(order.indexOf(language) + 1) % 3])}
-      style={[s.langToggle, light ? s.langToggleLight : s.langToggleDark]}>
-      <Text style={{ fontSize: 13, fontWeight: '800', color: light ? '#fff' : colors.green700 }}>🌐 {label[language]}</Text>
+      style={[s.langToggle, light ? s.langToggleLight : s.langToggleDark, { flexDirection: 'row', alignItems: 'center', gap: 5 }]}>
+      <Icon name="globe" size={13} color={light ? '#fff' : colors.green700} />
+      <Text style={{ fontSize: 13, fontWeight: '800', color: light ? '#fff' : colors.green700 }}>{label[language]}</Text>
     </TouchableOpacity>
   );
 }
@@ -127,7 +129,7 @@ export function StatusTimeline({ steps, current }: { steps: { label: string }[];
             <View style={s.tlRow}>
               {i > 0 ? <View style={[s.tlLine, i <= current && s.tlLineOn]} /> : <View style={{ flex: 1 }} />}
               <View style={[s.tlDot, done && s.tlDotDone, active && s.tlDotActive]}>
-                <Text style={s.tlDotTxt}>{done ? '✓' : i + 1}</Text>
+                {done ? <Icon name="check" size={14} color="#fff" /> : <Text style={s.tlDotTxt}>{i + 1}</Text>}
               </View>
               {i < steps.length - 1 ? <View style={[s.tlLine, i < current && s.tlLineOn]} /> : <View style={{ flex: 1 }} />}
             </View>
@@ -149,7 +151,7 @@ export function LocationBanner() {
   const onPress = () => { if (locationDenied) { Linking.openSettings?.(); } else { refreshLocation(); } };
   return (
     <View style={s.locBanner}>
-      <Text style={{ fontSize: 20 }}>📍</Text>
+      <Icon name="location" size={20} color="#92400e" />
       <Text style={s.locTitle}>{webBlocked ? t('locBlockedWeb') : locating ? t('locating') : t('locApprox')}</Text>
       {!locating && !webBlocked ? (
         <TouchableOpacity onPress={onPress} style={s.locBtn}>
@@ -174,8 +176,11 @@ export function DatePickerField({ label, value, minDate, onChange }:
     <View style={{ marginBottom: 14 }}>
       {label ? <Text style={s.label}>{label}</Text> : null}
       <TouchableOpacity onPress={() => setOpen(true)} style={s.dateField} activeOpacity={0.8}>
-        <Text style={s.dateFieldTxt}>📅  {long}</Text>
-        <Text style={{ color: colors.green, fontWeight: '800' }}>▾</Text>
+        <Row style={{ gap: 8 }}>
+          <Icon name="calendar" size={16} color={colors.green} />
+          <Text style={s.dateFieldTxt}>{long}</Text>
+        </Row>
+        <Icon name="chevronDown" size={16} color={colors.green} />
       </TouchableOpacity>
       <CalendarModal visible={open} initial={value} minDate={minDate}
         onClose={() => setOpen(false)} onPick={(d) => { onChange(d); setOpen(false); }} />
@@ -205,10 +210,10 @@ function CalendarModal({ visible, initial, minDate, onPick, onClose }:
         <TouchableOpacity activeOpacity={1} style={s.calCard} onPress={() => {}}>
           <View style={s.calHeader}>
             <TouchableOpacity onPress={prev} disabled={prevDisabled} style={s.calNav}>
-              <Text style={[s.calNavTxt, prevDisabled && { opacity: 0.25 }]}>‹</Text>
+              <Icon name="back" size={24} color={colors.green700} style={prevDisabled ? { opacity: 0.25 } : undefined} />
             </TouchableOpacity>
             <Text style={s.calMonth}>{monthLabel}</Text>
-            <TouchableOpacity onPress={next} style={s.calNav}><Text style={s.calNavTxt}>›</Text></TouchableOpacity>
+            <TouchableOpacity onPress={next} style={s.calNav}><Icon name="forward" size={24} color={colors.green700} /></TouchableOpacity>
           </View>
           <View style={{ flexDirection: 'row' }}>
             {_WEEK.map((w) => <Text key={w} style={s.calWeek}>{w}</Text>)}
@@ -238,7 +243,10 @@ export function RadiusPicker({ value, onChange, options = [5, 10, 15, 100] }: { 
   const label = (km: number) => (km > 15 ? t('anywhere') : `${n(km)} km`);  // far tier = "Anywhere"
   return (
     <View style={{ marginBottom: 14 }}>
-      <Text style={[s.radiusLbl, { marginBottom: 8 }]}>📍 {t('radiusLbl')}</Text>
+      <Row style={{ gap: 6, marginBottom: 8 }}>
+        <Icon name="location" size={14} color={colors.sub} />
+        <Text style={s.radiusLbl}>{t('radiusLbl')}</Text>
+      </Row>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingRight: 8 }}>
         {options.map((km) => (
           <TouchableOpacity key={km} onPress={() => onChange(km)} style={[s.radiusChip, value === km && s.radiusChipOn]}>
@@ -250,10 +258,18 @@ export function RadiusPicker({ value, onChange, options = [5, 10, 15, 100] }: { 
   );
 }
 
-export function EmptyState({ icon = '📭', title, subtitle }: any) {
+export function EmptyState({ icon = 'empty', title, subtitle }: any) {
+  // `icon` may be a React element, a semantic IconName, or a legacy emoji string.
+  const semantic = typeof icon === 'string' && /^[a-z][a-zA-Z]*$/.test(icon);
   return (
     <View style={s.empty}>
-      <Text style={{ fontSize: 44, marginBottom: 8 }}>{icon}</Text>
+      <View style={{ marginBottom: 8 }}>
+        {React.isValidElement(icon)
+          ? icon
+          : semantic
+            ? <Icon name={icon as IconName} size={44} color={colors.muted} />
+            : <Text style={{ fontSize: 44 }}>{icon}</Text>}
+      </View>
       <Text style={s.emptyTitle}>{title}</Text>
       {subtitle ? <Text style={s.emptySub}>{subtitle}</Text> : null}
     </View>
@@ -261,16 +277,22 @@ export function EmptyState({ icon = '📭', title, subtitle }: any) {
 }
 
 // Actionable highlighted banner (worker pending actions, post-booking next step).
-export function TaskBanner({ icon = '👉', title, subtitle, tone = 'green', action, onAction }: any) {
+export function TaskBanner({ icon = 'forward', title, subtitle, tone = 'green', action, onAction }: any) {
   const tones: any = {
     green: { bg: colors.green50, border: '#bbf7d0', fg: colors.green700 },
     amber: { bg: '#fffbeb', border: '#fde68a', fg: '#92400e' },
     blue: { bg: '#eff6ff', border: '#bfdbfe', fg: '#1d4ed8' },
   };
   const c = tones[tone] || tones.green;
+  // `icon` may be a React element, a semantic IconName, or a legacy emoji string.
+  const semantic = typeof icon === 'string' && /^[a-z][a-zA-Z]*$/.test(icon);
   return (
     <View style={[s.banner, { backgroundColor: c.bg, borderColor: c.border }]}>
-      <Text style={{ fontSize: 22 }}>{icon}</Text>
+      {React.isValidElement(icon)
+        ? icon
+        : semantic
+          ? <Icon name={icon as IconName} size={22} color={c.fg} />
+          : <Text style={{ fontSize: 22 }}>{icon}</Text>}
       <View style={{ flex: 1 }}>
         <Text style={[s.bannerTitle, { color: c.fg }]}>{title}</Text>
         {subtitle ? <Text style={s.bannerSub}>{subtitle}</Text> : null}

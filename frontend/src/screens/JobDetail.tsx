@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import Icon from '../Icon';
 import { api } from '../api';
 import { fmtDate, fmtDateTime, isPast } from '../dates';
 import { useApp } from '../state';
@@ -36,10 +37,10 @@ export default function JobDetail() {
                 ? <Badge label={t('kmAway', { km: n(job.distance_km) })} bg="#e0f2fe" color="#0369a1" />
                 : null}
           </Row>
-          {job.created_at ? <Text style={st.date}>📅 {t('postedOn', { date: fmtDate(job.created_at) })}</Text> : null}
+          {job.created_at ? <Text style={st.date}><Icon name="calendar" size={12} color={colors.muted} /> {t('postedOn', { date: fmtDate(job.created_at) })}</Text> : null}
           {job.deadline ? (
             <Text style={[st.date, isPast(job.deadline) && { color: colors.redDark, fontWeight: '700' }]}>
-              ⏰ {isPast(job.deadline) ? t('overdue') : t('dueBy', { date: fmtDateTime(job.deadline) })}
+              <Icon name="time" size={12} color={isPast(job.deadline) ? colors.redDark : colors.muted} /> {isPast(job.deadline) ? t('overdue') : t('dueBy', { date: fmtDateTime(job.deadline) })}
             </Text>
           ) : null}
           {job.description ? <Text style={st.desc}>{job.description}</Text> : null}

@@ -3,9 +3,11 @@ import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { api } from '../api';
 import BottomNav from '../BottomNav';
+import Icon, { IconName } from '../Icon';
 import { useApp } from '../state';
 import { colors, gradients, radius, services, shadow } from '../theme';
 import { Badge, Card, LangToggle, LocationBanner, RadiusPicker, Row, Screen } from '../ui';
+import MicButton from '../voice/MicButton';
 
 export default function Home() {
   const { navigate, showToast, coords, place, locating, t, n } = useApp();
@@ -22,10 +24,11 @@ export default function Home() {
   }, [radius, coords.lat, coords.lng]);
   useEffect(() => { api.wallet().then((w) => setBalance(w.balance)).catch(() => {}); }, []);
 
-  const search = async () => {
-    if (!q.trim()) return;
+  const search = async (override?: string) => {
+    const query = (override ?? q).trim();
+    if (!query) return;
     try {
-      const r = await api.nlSearch({ query: q });
+      const r = await api.nlSearch({ query });
       if (r.category) navigate('serviceListing', { category: r.category });
       else showToast(t('searchHint'));
     } catch (e: any) { showToast(e.message); }
@@ -39,22 +42,23 @@ export default function Home() {
             <Text style={st.hi}>{t('greeting')}</Text>
             <Row style={{ gap: 10 }}>
               <LangToggle light />
-              <TouchableOpacity onPress={() => navigate('notifications')}><Text style={{ fontSize: 22 }}>🔔</Text></TouchableOpacity>
+              <TouchableOpacity onPress={() => navigate('notifications')}><Icon name="bell" size={22} color="#fff" /></TouchableOpacity>
             </Row>
           </Row>
-          <Row style={{ gap: 6, marginTop: 8 }}><Text style={{ color: '#fff' }}>📍</Text><Text style={st.city}>{locating ? t('locating') : place}</Text></Row>
+          <Row style={{ gap: 6, marginTop: 8 }}><Icon name="location" size={16} color="#fff" /><Text style={st.city}>{locating ? t('locating') : place}</Text></Row>
           <Row style={st.search}>
-            <Text style={{ fontSize: 16 }}>🔍</Text>
+            <Icon name="search" size={16} color={colors.muted} />
             <TextInput value={q} onChangeText={setQ} placeholder={t('searchPlaceholder')}
-              placeholderTextColor={colors.muted} style={st.searchInput} onSubmitEditing={search} />
-            <TouchableOpacity onPress={search}><Text style={{ color: colors.green, fontWeight: '700', fontSize: 18 }}>➜</Text></TouchableOpacity>
+              placeholderTextColor={colors.muted} style={st.searchInput} onSubmitEditing={() => search()} />
+            <MicButton size={20} style={{ paddingHorizontal: 4 }} onText={(txt) => { setQ(txt); search(txt); }} />
+            <TouchableOpacity onPress={() => search()}><Icon name="arrowForward" size={18} color={colors.green} /></TouchableOpacity>
           </Row>
         </LinearGradient>
 
         <View style={{ padding: 16 }}>
           <LocationBanner />
           <View style={st.trust}>
-            <Text style={{ fontSize: 24 }}>✅</Text>
+            <Icon name="verified" size={24} color={colors.green} />
             <View style={{ flex: 1 }}>
               <Text style={st.trustT}>{t('trustTitle')}</Text>
               <Text style={st.trustS}>{t('trustSub')}</Text>
@@ -64,7 +68,10 @@ export default function Home() {
           <Card onPress={() => navigate('wallet')} style={{ marginTop: 14 }}>
             <Row style={{ justifyContent: 'space-between', alignItems: 'center' }}>
               <View style={{ flex: 1 }}>
-                <Text style={st.myJobsT}>💳  {t('walletBalance')}</Text>
+                <Row style={{ gap: 6 }}>
+                  <Icon name="card" size={16} color={colors.green} />
+                  <Text style={st.myJobsT}>{t('walletBalance')}</Text>
+                </Row>
                 <Text style={st.walletBal}>PKR {n(balance ?? 0)}</Text>
               </View>
               <Text style={st.addLink}>{t('addMoney')}</Text>
@@ -77,7 +84,7 @@ export default function Home() {
                 <Text style={st.myJobsT}>{t('myPostedJobsCard')}</Text>
                 <Text style={st.myJobsS}>{t('myPostedJobsSub')}</Text>
               </View>
-              <Text style={{ color: colors.green, fontWeight: '800', fontSize: 20 }}>›</Text>
+              <Icon name="forward" size={20} color={colors.green} />
             </Row>
           </Card>
 
@@ -85,7 +92,7 @@ export default function Home() {
           <View style={st.grid}>
             {services.map((sv) => (
               <TouchableOpacity key={sv.key} style={st.svc} onPress={() => navigate('serviceListing', { category: sv.key })}>
-                <Text style={{ fontSize: 30 }}>{sv.icon}</Text>
+                <Icon name={sv.key as IconName} size={30} color={colors.green} />
                 <Text style={st.svcName}>{t('svc_' + sv.key)}</Text>
               </TouchableOpacity>
             ))}
@@ -104,9 +111,9 @@ export default function Home() {
                 </Row>
                 <Text style={st.wSkill}>{(w.skills || []).map((k: string) => t('svc_' + k)).join(', ') || t('worker')}</Text>
                 <Row style={{ gap: 14, marginTop: 6 }}>
-                  <Text style={st.meta}>⭐ {n(Number(w.rating_avg).toFixed(1))}</Text>
-                  <Text style={st.meta}>✅ {n(w.jobs_completed)} {t('jobsDone')}</Text>
-                  <Text style={st.meta}>📍 {n(w.distance_km)} km</Text>
+                  <Row style={{ gap: 4 }}><Icon name="star" size={12} color={colors.amber} /><Text style={st.meta}>{n(Number(w.rating_avg).toFixed(1))}</Text></Row>
+                  <Row style={{ gap: 4 }}><Icon name="verified" size={12} color={colors.green} /><Text style={st.meta}>{n(w.jobs_completed)} {t('jobsDone')}</Text></Row>
+                  <Row style={{ gap: 4 }}><Icon name="location" size={12} color={colors.sub} /><Text style={st.meta}>{n(w.distance_km)} km</Text></Row>
                 </Row>
               </Card>
             ))}

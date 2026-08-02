@@ -23,8 +23,15 @@ class Settings(BaseSettings):
     # External providers (mock by default)
     nadra_provider: str = "mock"
     payment_provider: str = "mock"
-    stt_provider: str = "mock"
+    stt_provider: str = "mock"        # mock | local  (local = offline faster-whisper, BO-4 voice)
     push_provider: str = "mock"
+
+    # Speech-to-text (voice interface, BO-4). Used only when stt_provider == "local".
+    whisper_model: str = "base"          # tiny | base | small | medium | large-v3 (base = CPU sweet spot)
+    whisper_device: str = "cpu"          # cpu | cuda
+    whisper_compute_type: str = "int8"   # int8 (CPU) | float16 (GPU)
+    whisper_lang_default: str = "ur"     # Urdu; Whisper still auto-handles English / Roman-Urdu
+    whisper_download_root: str = ""      # empty = default HF cache; set a D: path on low C-disk machines
 
     # Business rules
     platform_fee_pct: float = 0.10

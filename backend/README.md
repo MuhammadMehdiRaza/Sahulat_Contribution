@@ -49,6 +49,55 @@ curl -s -XPOST localhost:8000/api/v1/auth/verify -H 'content-type: application/j
   -d '{"phone":"03001234567","code":"<debug_code>","role":"hirer","full_name":"Ali"}'
 ```
 
+## Voice setup — turn on real speech (simple guide)
+
+The app has a voice assistant (Urdu / English / Roman-Urdu). By default the backend runs in
+**demo mode**, where voice always returns the *same fixed sentence* no matter what you say.
+Do this once to switch on **real** speech-to-text. It runs fully **offline** on your own
+computer — no API key, no cost.
+
+> **On the web (Chrome) you don't need any of this** — the browser does the speech itself.
+> This is only for the **phone** app.
+
+**You need Python 3.13** (not 3.14 — the speech engine has no 3.14 build yet).
+
+**Step 1 — make the environment and install the speech engine (once):**
+```powershell
+cd backend
+py -3.13 -m venv .venv                 # low on C: space? use another drive: py -3.13 -m venv D:\sahulat_venv
+.venv\Scripts\python -m pip install -r requirements.txt
+.venv\Scripts\python -m pip install -r requirements-whisper.txt   # the offline speech engine
+```
+
+**Step 2 — start the backend with voice ON:**
+```powershell
+.\run_voice.ps1
+```
+Done. The **first** voice command takes ~5–10 seconds (it loads the speech model once), then it's
+fast. Keep your phone on the **same Wi-Fi**, reload the app, tap the mic, allow the microphone.
+
+**Prefer to run it by hand (no script)?**
+```powershell
+$env:STT_PROVIDER = "local"
+$env:WHISPER_DOWNLOAD_ROOT = "D:/sahulat_models/whisper"
+.venv\Scripts\python -m uvicorn app.main:app --host 0.0.0.0 --port 8000
+```
+
+**Good to know**
+- The speech model (~140 MB) **downloads automatically** the first time you use `local` mode
+  (needs internet just once), then works offline. On a full C: drive, set `WHISPER_DOWNLOAD_ROOT`
+  to another drive so it caches there.
+- **Don't** put `STT_PROVIDER=local` in a committed `.env` — that makes `pytest` try to use the
+  speech engine. Keep it in `run_voice.ps1` / the command above; the tests must stay on demo mode.
+- ✅ It's working when the text is *what you actually said* — no longer the fixed
+  "mujhe plumber chahiye ghar par, budget 2000 rupay".
+
+**How it works (for reference).** Phone records audio → `POST /api/v1/voice/transcribe`
+(faster-whisper) → text → `POST /api/v1/voice/interpret` → the app navigates / searches / posts /
+speaks a reply. Both `/voice/*` endpoints accept any logged-in user. Intent parsing is a
+deterministic rule-based parser in `app/modules/voice/grammar.py` (English + Roman-Urdu + Urdu
+script) — no LLM. `--host 0.0.0.0` lets an Expo Go phone on the same Wi-Fi reach the API.
+
 ## Layout
 ```
 backend/

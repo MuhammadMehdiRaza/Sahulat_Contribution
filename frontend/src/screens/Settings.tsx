@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import BottomNav from '../BottomNav';
+import Icon from '../Icon';
 import { LANGUAGES } from '../i18n';
 import { useApp } from '../state';
 import { colors, radius } from '../theme';
@@ -30,7 +31,7 @@ export default function Settings() {
             <TouchableOpacity key={l.id} onPress={() => setLanguage(l.id)} style={[st.lang, language === l.id && st.langOn]}>
               <Text style={{ fontSize: 20 }}>{l.flag}</Text>
               <Text style={st.langName}>{l.name}</Text>
-              {language === l.id ? <Text style={st.tick}>✓</Text> : null}
+              {language === l.id ? <Icon name="check" size={16} color={colors.green} style={{ marginStart: 'auto' }} /> : null}
             </TouchableOpacity>
           ))}
         </Card>

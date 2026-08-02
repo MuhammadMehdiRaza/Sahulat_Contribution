@@ -73,6 +73,9 @@ export const api = {
   nearbyJobs: (lat: number, lng: number, radius_km: number, category?: string) =>
     req(`/jobs/nearby?${qs({ lat, lng, radius_km, category })}`),
   nlSearch: (body: any) => req('/jobs/search/nl', { method: 'POST', body }),
+  // voice interface (BO-4)
+  voiceTranscribe: (body: { voice_b64: string; lang: string }) => req('/voice/transcribe', { method: 'POST', body }),
+  voiceInterpret: (body: { text: string; lang: string }) => req('/voice/interpret', { method: 'POST', body }),
   cancelJob: (id: string) => req(`/jobs/${id}/cancel`, { method: 'PATCH' }),
   expressInterest: (jobId: string, message = '') => req(`/jobs/${jobId}/interest`, { method: 'POST', body: { message } }),
   jobInterests: (jobId: string) => req(`/jobs/${jobId}/interests`),

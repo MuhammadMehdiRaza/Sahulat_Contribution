@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import Icon from '../Icon';
 import { api } from '../api';
 import { useApp } from '../state';
 import { colors, radius } from '../theme';
@@ -29,7 +30,7 @@ export default function Signup() {
     <ScrollView style={{ flex: 1 }} contentContainerStyle={s.wrap} keyboardShouldPersistTaps="handled">
       <View style={s.topBar}>
         {canGoBack ? (
-          <TouchableOpacity onPress={goBack} style={s.backBtn}><Text style={s.backTxt}>‹ {t('back')}</Text></TouchableOpacity>
+          <TouchableOpacity onPress={goBack} style={s.backBtn}><Text style={s.backTxt}><Icon name="back" size={14} color={colors.green700} /> {t('back')}</Text></TouchableOpacity>
         ) : <View />}
         <LangToggle />
       </View>
@@ -43,11 +44,11 @@ export default function Signup() {
       <Text style={s.roleLabel}>{t('iWantTo')}</Text>
       <View style={s.roleRow}>
         <TouchableOpacity style={[s.roleBtn, role === 'hirer' && s.roleOn]} onPress={() => setRole('hirer')}>
-          <Text style={{ fontSize: 26 }}>👤</Text>
+          <Icon name="person" size={26} color={colors.green} />
           <Text style={s.roleTxt}>{t('findWorkers')}</Text>
         </TouchableOpacity>
         <TouchableOpacity style={[s.roleBtn, role === 'worker' && s.roleOn]} onPress={() => setRole('worker')}>
-          <Text style={{ fontSize: 26 }}>👷</Text>
+          <Icon name="worker" size={26} color={colors.green} />
           <Text style={s.roleTxt}>{t('findWork')}</Text>
         </TouchableOpacity>
       </View>

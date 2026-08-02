@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, Switch, Text, View } from 'react-native';
+import Icon from '../Icon';
 import { api } from '../api';
 import BottomNav from '../BottomNav';
 import { useApp } from '../state';
@@ -45,14 +46,14 @@ export default function WorkerDashboard() {
   return (
     <View style={{ flex: 1, backgroundColor: colors.bg }}>
       <Header title={t('dashGreeting', { name: user?.full_name?.split(' ')[0] || t('worker') })}
-        subtitle={`📍 ${locating ? t('locating') : place}`} />
+        subtitle={<><Icon name="location" size={13} color="#fff" /> {locating ? t('locating') : place}</>} />
       <Screen>
         <LocationBanner />
         {/* Task-driven banners: the worker sees exactly what to do next */}
-        {!verified && <TaskBanner icon="🪪" tone="amber" title={t('bannerKycTitle')} subtitle={t('bannerKycSub')} action={t('confirm')} onAction={() => navigate('kyc')} />}
-        <TaskBanner icon="👤" tone="blue" title={t('workerProfileTitle')} subtitle={t('workerProfileSub')} action={t('editLbl')} onAction={() => navigate('workerProfileEdit')} />
-        {verified && !available && <TaskBanner icon="📡" tone="blue" title={t('bannerOfflineTitle')} subtitle={t('bannerOfflineSub')} action={t('goOnline')} onAction={() => toggle(true)} />}
-        {pending > 0 && <TaskBanner icon="📋" tone="green" title={t('bannerJobsTitle', { n: n(pending) })} subtitle={t('bannerJobsSub')} action={t('reviewLbl')} onAction={() => navigate('bookings')} />}
+        {!verified && <TaskBanner icon={<Icon name="card" size={22} color="#92400e" />} tone="amber" title={t('bannerKycTitle')} subtitle={t('bannerKycSub')} action={t('confirm')} onAction={() => navigate('kyc')} />}
+        <TaskBanner icon={<Icon name="person" size={22} color="#1d4ed8" />} tone="blue" title={t('workerProfileTitle')} subtitle={t('workerProfileSub')} action={t('editLbl')} onAction={() => navigate('workerProfileEdit')} />
+        {verified && !available && <TaskBanner icon={<Icon name="signal" size={22} color="#1d4ed8" />} tone="blue" title={t('bannerOfflineTitle')} subtitle={t('bannerOfflineSub')} action={t('goOnline')} onAction={() => toggle(true)} />}
+        {pending > 0 && <TaskBanner icon={<Icon name="bookings" size={22} color={colors.green700} />} tone="green" title={t('bannerJobsTitle', { n: n(pending) })} subtitle={t('bannerJobsSub')} action={t('reviewLbl')} onAction={() => navigate('bookings')} />}
 
         <Card>
           <Row style={{ justifyContent: 'space-between' }}>
@@ -67,7 +68,7 @@ export default function WorkerDashboard() {
         <Row style={{ gap: 12 }}>
           <Card style={{ flex: 1 }}>
             <Text style={st.cardH}>{t('identityKyc')}</Text>
-            <Badge label={verified ? `✓ ${t('verified')}` : (kyc?.status || t('pending'))} style={{ marginTop: 8 }}
+            <Badge label={verified ? <><Icon name="check" size={12} color={colors.green700} /> {t('verified')}</> : (kyc?.status || t('pending'))} style={{ marginTop: 8 }}
               bg={verified ? '#dcfce7' : '#fef3c7'} color={verified ? colors.green700 : '#92400e'} />
           </Card>
           <Card style={{ flex: 1 }}>

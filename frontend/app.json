@@ -27,6 +27,12 @@
         {
           "locationWhenInUsePermission": "Kaam.pk uses your location to find verified workers and jobs near you."
         }
+      ],
+      [
+        "expo-audio",
+        {
+          "microphonePermission": "Kaam.pk uses your microphone for voice search and voice messages."
+        }
       ]
     ]
   }

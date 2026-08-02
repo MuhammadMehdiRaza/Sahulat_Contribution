@@ -4,6 +4,14 @@ export type Lang = 'en' | 'ur' | 'roman_ur';
 type Dict = Record<string, string>;
 
 const en: Dict = {
+  // voice assistant (BO-4)
+  voiceTitle: 'Voice Assistant', voiceTapSpeak: 'Tap the mic and speak',
+  voiceListening: 'Listening…', voiceThinking: 'Thinking…', voiceSpeaking: 'Speaking…',
+  voiceExamples: 'Try: "find a plumber", "open my wallet", "show my bookings"',
+  voiceUnsupported: 'Voice input needs Chrome or the phone app. You can still type.',
+  voiceMicDenied: 'Microphone access is off. Enable it, or type instead.',
+  voiceNoSpeech: "Didn't catch that — please try again.",
+  voiceError: 'Voice failed. Please try again.',
   // common
   next: 'Next', back: 'Back', skip: 'Skip', getStarted: 'Get Started', cancel: 'Cancel',
   confirm: 'Confirm', send: 'Send', submit: 'Submit', available: 'Available', busy: 'Busy',
@@ -198,6 +206,14 @@ const en: Dict = {
 };
 
 const ur: Dict = {
+  // voice assistant (BO-4)
+  voiceTitle: 'صوتی معاون', voiceTapSpeak: 'مائیک دبائیں اور بولیں',
+  voiceListening: 'سن رہا ہوں…', voiceThinking: 'سمجھ رہا ہوں…', voiceSpeaking: 'بول رہا ہوں…',
+  voiceExamples: 'کہیں: ”پلمبر تلاش کرو“، ”والٹ کھولو“، ”میری بکنگ دکھاؤ“',
+  voiceUnsupported: 'صوتی اِن پُٹ کے لیے کروم یا موبائل ایپ درکار ہے۔ آپ ٹائپ بھی کر سکتے ہیں۔',
+  voiceMicDenied: 'مائیکروفون بند ہے۔ اسے آن کریں یا ٹائپ کریں۔',
+  voiceNoSpeech: 'کچھ سنائی نہیں دیا — دوبارہ کوشش کریں۔',
+  voiceError: 'صوتی سہولت ناکام۔ دوبارہ کوشش کریں۔',
   next: 'اگلا', back: 'واپس', skip: 'چھوڑیں', getStarted: 'شروع کریں', cancel: 'منسوخ کریں',
   confirm: 'تصدیق کریں', send: 'بھیجیں', submit: 'جمع کرائیں', available: 'دستیاب', busy: 'مصروف',
   offline: 'آف لائن', verified: 'تصدیق شدہ', pending: 'زیرِ التوا', changeRole: '← کردار تبدیل کریں',
@@ -354,6 +370,14 @@ const ur: Dict = {
 };
 
 const roman_ur: Dict = {
+  // voice assistant (BO-4)
+  voiceTitle: 'Sauti Muawin', voiceTapSpeak: 'Mic dabayein aur bolein',
+  voiceListening: 'Sun raha hoon…', voiceThinking: 'Samajh raha hoon…', voiceSpeaking: 'Bol raha hoon…',
+  voiceExamples: 'Kahein: "plumber talaash karo", "wallet kholo", "meri booking dikhao"',
+  voiceUnsupported: 'Voice input ke liye Chrome ya phone app chahiye. Aap type bhi kar sakte hain.',
+  voiceMicDenied: 'Microphone band hai. On karein ya type karein.',
+  voiceNoSpeech: 'Kuch sunai nahin diya — dobara koshish karein.',
+  voiceError: 'Voice fail hui. Dobara koshish karein.',
   next: 'Agla', back: 'Wapas', skip: 'Skip karein', getStarted: 'Shuru karein', cancel: 'Cancel karein',
   confirm: 'Tasdeeq karein', send: 'Bhejein', submit: 'Jama karayein', available: 'Dastyaab', busy: 'Masroof',
   offline: 'Offline', verified: 'Tasdeeq shuda', pending: 'zer-e-iltawa', changeRole: '← Role tabdeel karein',

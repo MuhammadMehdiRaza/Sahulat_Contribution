@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import Icon, { IconName } from '../Icon';
 import { api } from '../api';
 import { useApp } from '../state';
 import { colors, radius, services } from '../theme';
@@ -64,7 +65,7 @@ export default function WorkerProfileEdit() {
           {services.map((s) => (
             <TouchableOpacity key={s.key} onPress={() => toggleSkill(s.key)}
               style={[st.chip, skills.includes(s.key) && st.chipOn]}>
-              <Text style={skills.includes(s.key) ? st.chipTxtOn : st.chipTxt}>{s.icon} {t('svc_' + s.key)}</Text>
+              <Text style={skills.includes(s.key) ? st.chipTxtOn : st.chipTxt}><Icon name={s.key as IconName} size={16} color={skills.includes(s.key) ? colors.green700 : colors.text} /> {t('svc_' + s.key)}</Text>
             </TouchableOpacity>
           ))}
         </View>
@@ -80,7 +81,7 @@ export default function WorkerProfileEdit() {
         <Btn title={t('useMyLocation')} variant="outline" onPress={useMyLocation} />
         <View style={[st.status, loc ? st.statusOn : st.statusOff, { marginTop: 10 }]}>
           <Text style={loc ? st.statusOnTxt : st.statusOffTxt}>
-            {loc ? `✅ ${t('locationSetTo', { place: loc.label || place })}` : `⚠️ ${t('noLocationSet')}`}
+            {loc ? <><Icon name="verified" size={13} color={colors.green700} /> {t('locationSetTo', { place: loc.label || place })}</> : <><Icon name="warning" size={13} color={colors.red} /> {t('noLocationSet')}</>}
           </Text>
         </View>
         <Text style={st.hint}>{t('workerLocationHint')}</Text>

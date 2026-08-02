@@ -59,11 +59,12 @@ def create_app() -> FastAPI:
     from .modules.chat.router import router as chat_router
     from .modules.notifications.router import router as notifications_router
     from .modules.admin.router import router as admin_router
+    from .modules.voice.router import router as voice_router
 
     for r in (
         auth_router, profile_router, kyc_router, jobs_router, matching_router,
         bidding_router, booking_router, payment_router, chat_router,
-        notifications_router, admin_router,
+        notifications_router, admin_router, voice_router,
     ):
         app.include_router(r, prefix="/api/v1")
 

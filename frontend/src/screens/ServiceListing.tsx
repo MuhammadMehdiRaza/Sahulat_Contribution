@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { api } from '../api';
+import Icon from '../Icon';
 import { useApp } from '../state';
 import { colors } from '../theme';
 import { Badge, Btn, Card, Header, Row, Screen } from '../ui';
@@ -38,8 +39,8 @@ export default function ServiceListing() {
               </Row>
               <Text style={st.skill}>{(w.skills || []).map((k: string) => t('svc_' + k)).join(', ')}</Text>
               <Row style={{ gap: 14, marginTop: 6 }}>
-                <Text style={st.meta}>⭐ {n(Number(w.rating_avg).toFixed(1))}</Text>
-                <Text style={st.meta}>✅ {n(w.jobs_completed)} {t('jobsDone')}</Text>
+                <Text style={st.meta}><Icon name="star" size={12} color={colors.amber} /> {n(Number(w.rating_avg).toFixed(1))}</Text>
+                <Text style={st.meta}><Icon name="verified" size={12} color={colors.green} /> {n(w.jobs_completed)} {t('jobsDone')}</Text>
                 <Badge label={w.availability === 'available' ? t('available') : t('busy')} />
               </Row>
             </Card>

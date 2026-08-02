@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 import { api } from '../api';
+import Icon from '../Icon';
 import { endOfDayISO, fmtDateTime, isPast, parseUTC } from '../dates';
 import { useApp } from '../state';
 import { colors, radius } from '../theme';
@@ -72,14 +73,14 @@ export default function BookingDetail() {
             <View><Text style={st.k}>{t('paymentMethod')}</Text><Text style={st.v}>{b.payment_method.replace('_', ' ')}</Text></View>
           </Row>
           <View style={st.dates}>
-            {b.created_at ? <Text style={st.dateLine}>📅 {t('bookedOn', { date: fmtDateTime(b.created_at) })}</Text> : null}
+            {b.created_at ? <Text style={st.dateLine}><Icon name="calendar" size={12} color={colors.sub} /> {t('bookedOn', { date: fmtDateTime(b.created_at) })}</Text> : null}
             {b.deadline ? (
               <Text style={[st.dateLine, isPast(b.deadline) && b.status !== 'completed' && { color: colors.redDark, fontWeight: '700' }]}>
-                ⏰ {isPast(b.deadline) && b.status !== 'completed' ? t('overdue') : t('dueBy', { date: fmtDateTime(b.deadline) })}
+                <Icon name="time" size={12} color={isPast(b.deadline) && b.status !== 'completed' ? colors.redDark : colors.sub} /> {isPast(b.deadline) && b.status !== 'completed' ? t('overdue') : t('dueBy', { date: fmtDateTime(b.deadline) })}
               </Text>
             ) : null}
-            {b.started_at ? <Text style={st.dateLine}>▶️ {t('startedOn', { date: fmtDateTime(b.started_at) })}</Text> : null}
-            {b.completed_at ? <Text style={st.dateLine}>✅ {t('completedOn', { date: fmtDateTime(b.completed_at) })}</Text> : null}
+            {b.started_at ? <Text style={st.dateLine}><Icon name="play" size={12} color={colors.sub} /> {t('startedOn', { date: fmtDateTime(b.started_at) })}</Text> : null}
+            {b.completed_at ? <Text style={st.dateLine}><Icon name="verified" size={12} color={colors.green} /> {t('completedOn', { date: fmtDateTime(b.completed_at) })}</Text> : null}
           </View>
         </Card>
 
@@ -100,7 +101,7 @@ export default function BookingDetail() {
         {b.status === 'cancelled'
           ? <Badge label={t('cancel')} bg="#fee2e2" color={colors.redDark} />
           : <StatusTimeline steps={timelineSteps} current={STEP_INDEX[b.status] ?? 0} />}
-        {hint ? <View style={{ marginTop: 14 }}><TaskBanner icon="ℹ️" tone={hint.tone} title={hint.text} /></View> : null}
+        {hint ? <View style={{ marginTop: 14 }}><TaskBanner icon="info" tone={hint.tone} title={hint.text} /></View> : null}
 
         {/* actions for the current status */}
         {isWorker && b.status === 'pending_approval' && <Btn title={t('confirmBooking')} onPress={() => act(() => api.confirmBooking(b.id))} loading={busy} style={{ marginTop: 6 }} />}
@@ -118,7 +119,7 @@ export default function BookingDetail() {
           <Btn title={t('collectCod')} onPress={() => act(async () => { const r = await api.codCollectFee(b.id); showToast(t('releasePin', { pin: r.release_pin })); })} loading={busy} style={{ marginTop: 6 }} />}
         {b.status === 'completed' && (
           b.rated
-            ? <View style={st.rated}><Text style={st.ratedTxt}>{t('youRated')} {'⭐'.repeat(b.my_rating || 0)}</Text></View>
+            ? <View style={st.rated}><Text style={st.ratedTxt}>{t('youRated')} {Array.from({ length: b.my_rating || 0 }).map((_, i) => <Icon key={i} name="star" size={16} color={colors.amber} />)}</Text></View>
             : <Btn title={isWorker ? t('rateCustomerBtn') : t('rateWorkerBtn')} style={{ marginTop: 6 }}
                 onPress={() => navigate('rating', isWorker ? { booking: b, rateeRole: 'hirer' } : { booking: b })} />
         )}

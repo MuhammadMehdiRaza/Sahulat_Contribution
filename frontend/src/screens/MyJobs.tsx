@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { api } from '../api';
+import Icon from '../Icon';
 import { fmtDate, isPast } from '../dates';
 import { useApp } from '../state';
 import { colors } from '../theme';
@@ -44,10 +45,10 @@ export default function MyJobs() {
           <Text style={st.cat}>{t('svc_' + j.category)}</Text>
           <Badge label={secLabel[j.status] || j.status} bg={sc.bg} color={sc.fg} />
         </Row>
-        {j.created_at ? <Text style={st.date}>📅 {fmtDate(j.created_at)}</Text> : null}
+        {j.created_at ? <Text style={st.date}><Icon name="calendar" size={12} color={colors.muted} /> {fmtDate(j.created_at)}</Text> : null}
         {j.deadline && j.status !== 'completed' && j.status !== 'cancelled' ? (
           <Text style={[st.date, isPast(j.deadline) && { color: colors.redDark, fontWeight: '700' }]}>
-            ⏰ {isPast(j.deadline) ? t('overdue') : t('dueBy', { date: fmtDate(j.deadline) })}
+            <Icon name="time" size={12} color={isPast(j.deadline) ? colors.redDark : colors.muted} /> {isPast(j.deadline) ? t('overdue') : t('dueBy', { date: fmtDate(j.deadline) })}
           </Text>
         ) : null}
         {j.description ? <Text style={st.desc} numberOfLines={2}>{j.description}</Text> : null}
@@ -71,7 +72,7 @@ export default function MyJobs() {
       <Screen>
         <Btn title={t('postNewJob')} variant="outline" onPress={() => navigate('postJob')} style={{ marginBottom: 14 }} />
         {jobs === null ? null : jobs.length === 0 ? (
-          <EmptyState icon="📋" title={t('noPostedJobs')} />
+          <EmptyState icon={<Icon name="bookings" size={44} color={colors.muted} />} title={t('noPostedJobs')} />
         ) : SECTIONS.map((status) => {
           const group = jobs.filter((j) => j.status === status);
           if (group.length === 0) return null;

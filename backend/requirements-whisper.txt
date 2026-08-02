@@ -1,0 +1,6 @@
+# Optional offline speech-to-text for the voice interface (activate with STT_PROVIDER=local).
+# Install only when you want real on-device transcription:
+#     pip install -r requirements-whisper.txt
+# On low C:-disk machines, set WHISPER_DOWNLOAD_ROOT to a D: path so the ~140 MB model
+# cache lands there instead of the (full) C: drive. See .env.example.
+faster-whisper>=1.0.0
