@@ -12,8 +12,11 @@ function resolveApiBase(): string {
     (Constants as any).expoGoConfig?.debuggerHost ||
     (Constants as any).manifest2?.extra?.expoGo?.debuggerHost ||
     (Constants as any).manifest?.debuggerHost;
-  const host = hostUri ? hostUri.split(':')[0] : 'localhost';
-  return `http://${host}:8000/api/v1`;
+  const host = hostUri ? hostUri.split(':')[0] : null;
+  // If host is a numeric IPv4 address, use it; otherwise fallback to dev machine LAN IP
+  const isIp = host && /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(host);
+  const targetHost = isIp ? host : '10.1.175.140';
+  return `http://${targetHost}:8000/api/v1`;
 }
 
 export const API_BASE = resolveApiBase();
@@ -111,6 +114,7 @@ export const api = {
   getOffer: (id: string) => req(`/chat/threads/${id}/offer`),
   makeOffer: (id: string, amount: number) => req(`/chat/threads/${id}/offer`, { method: 'POST', body: { amount } }),
   acceptOffer: (id: string) => req(`/chat/threads/${id}/offer/accept`, { method: 'POST' }),
+  aiNegotiateInChat: (id: string, body: any = {}) => req(`/chat/threads/${id}/ai-negotiate`, { method: 'POST', body }),
   bookFromThread: (id: string, payment_method = 'escrow_easypaisa') => req(`/chat/threads/${id}/booking`, { method: 'POST', body: { payment_method } }),
   // notifications
   notifications: () => req('/notifications'),
