@@ -19,6 +19,7 @@ export function useVoice() {
   const messageFor = useCallback((code: string) => {
     if (code === 'permission') return t('voiceMicDenied');
     if (code === 'unsupported') return t('voiceUnsupported');
+    if (code === 'demo') return t('voiceUnavailableLang');
     if (code === 'empty' || code === 'no-audio') return t('voiceNoSpeech');
     return t('voiceError');
   }, [t]);
@@ -49,7 +50,7 @@ export function useVoice() {
     await speech.start(language, {
       onPartial: (txt) => setTranscript(txt),
       onResult: (txt) => handleResult(txt),
-      onError: (code) => { setState('idle'); showToast(messageFor(code)); },
+      onError: (code) => { const m = messageFor(code); setReply(m); setState('idle'); showToast(m); },
     });
   }, [language, speech, handleResult, showToast, t, messageFor]);
 

@@ -9,7 +9,7 @@ import { colors, radius, shadow } from '../theme';
 import { useVoice } from './useVoice';
 
 export default function VoiceAssistant() {
-  const { t, rtl, screen, params } = useApp();
+  const { t, rtl, screen, params, language } = useApp();
   const voice = useVoice();
   const [open, setOpen] = useState(false);
   const pulse = useRef(new Animated.Value(0)).current;
@@ -35,6 +35,8 @@ export default function VoiceAssistant() {
     }
   }, [open, voice.state, voice.reply]);
 
+  // Speech-to-text produces Urdu script, not Roman letters, so voice is disabled in Roman-Urdu mode.
+  if (language === 'roman_ur') return null;
   // The chat conversation screen has its own inline mic — don't cover its input row.
   if (screen === 'chat' && params?.threadId) return null;
 

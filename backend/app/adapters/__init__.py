@@ -110,7 +110,8 @@ def _transcribe_local(audio_b64: str, lang: str) -> dict:
             tmp_path = tmp.name
         model = _get_whisper_model()
         segments, _info = model.transcribe(
-            tmp_path, language=(lang or settings.whisper_lang_default), beam_size=5)
+            tmp_path, language=(lang or settings.whisper_lang_default),
+            beam_size=5, vad_filter=True, condition_on_previous_text=False)
         text = "".join(seg.text for seg in segments).strip()  # generator is lazy — iterate to run it
         return {"text": text, "lang": lang}
     finally:

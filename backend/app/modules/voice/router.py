@@ -13,6 +13,7 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel
 
 from ... import adapters
+from ...core.config import settings
 from ...core.deps import get_current_user
 from ...models import User
 from . import grammar
@@ -28,6 +29,7 @@ class TranscribeIn(BaseModel):
 class TranscribeOut(BaseModel):
     text: str
     lang: str
+    demo: bool = False   # True when the mock STT is used (real offline Whisper not running)
 
 
 class InterpretIn(BaseModel):
@@ -106,7 +108,8 @@ def _resolve_reply(reply_key: str, lang: str) -> dict:
 def voice_transcribe(payload: TranscribeIn, user: User = Depends(get_current_user)):
     """Transcribe a base64 audio clip. Role-neutral so workers can use voice too."""
     out = adapters.transcribe(payload.voice_b64, payload.lang)
-    return TranscribeOut(text=out.get("text", ""), lang=out.get("lang", payload.lang))
+    return TranscribeOut(text=out.get("text", ""), lang=out.get("lang", payload.lang),
+                         demo=(settings.stt_provider != "local"))
 
 
 @router.post("/interpret", response_model=InterpretOut)

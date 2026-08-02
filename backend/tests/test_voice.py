@@ -162,7 +162,7 @@ def test_transcribe_local_adapter_glue(monkeypatch):
             self.text = text
 
     class _FakeModel:
-        def transcribe(self, path, language=None, beam_size=5):
+        def transcribe(self, path, language=None, **kwargs):
             with open(path, "rb") as f:              # prove a real, readable temp file was written
                 assert f.read() == b"hello-audio"
             return iter([_Seg("mujhe "), _Seg("plumber chahiye")]), {"language": language}

@@ -12,6 +12,7 @@ const en: Dict = {
   voiceMicDenied: 'Microphone access is off. Enable it, or type instead.',
   voiceNoSpeech: "Didn't catch that — please try again.",
   voiceError: 'Voice failed. Please try again.',
+  voiceUnavailableLang: "Voice isn't available in this language right now. Please type, or use English.",
   // common
   next: 'Next', back: 'Back', skip: 'Skip', getStarted: 'Get Started', cancel: 'Cancel',
   confirm: 'Confirm', send: 'Send', submit: 'Submit', available: 'Available', busy: 'Busy',
@@ -214,6 +215,7 @@ const ur: Dict = {
   voiceMicDenied: 'مائیکروفون بند ہے۔ اسے آن کریں یا ٹائپ کریں۔',
   voiceNoSpeech: 'کچھ سنائی نہیں دیا — دوبارہ کوشش کریں۔',
   voiceError: 'صوتی سہولت ناکام۔ دوبارہ کوشش کریں۔',
+  voiceUnavailableLang: 'اس زبان میں فی الحال صوتی سہولت دستیاب نہیں۔ براہ کرم ٹائپ کریں، یا انگریزی استعمال کریں۔',
   next: 'اگلا', back: 'واپس', skip: 'چھوڑیں', getStarted: 'شروع کریں', cancel: 'منسوخ کریں',
   confirm: 'تصدیق کریں', send: 'بھیجیں', submit: 'جمع کرائیں', available: 'دستیاب', busy: 'مصروف',
   offline: 'آف لائن', verified: 'تصدیق شدہ', pending: 'زیرِ التوا', changeRole: '← کردار تبدیل کریں',
@@ -378,6 +380,7 @@ const roman_ur: Dict = {
   voiceMicDenied: 'Microphone band hai. On karein ya type karein.',
   voiceNoSpeech: 'Kuch sunai nahin diya — dobara koshish karein.',
   voiceError: 'Voice fail hui. Dobara koshish karein.',
+  voiceUnavailableLang: 'Is zabaan mein filhaal voice available nahin. Please type karein, ya English istemaal karein.',
   next: 'Agla', back: 'Wapas', skip: 'Skip karein', getStarted: 'Shuru karein', cancel: 'Cancel karein',
   confirm: 'Tasdeeq karein', send: 'Bhejein', submit: 'Jama karayein', available: 'Dastyaab', busy: 'Masroof',
   offline: 'Offline', verified: 'Tasdeeq shuda', pending: 'zer-e-iltawa', changeRole: '← Role tabdeel karein',

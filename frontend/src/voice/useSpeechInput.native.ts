@@ -69,6 +69,7 @@ export function useSpeechInput(): SpeechInput {
       if (!b64) { cbs?.onError('no-audio'); return; }
       const sttLang = langRef.current === 'en' ? 'en' : 'ur';
       const r = await api.voiceTranscribe({ voice_b64: b64, lang: sttLang });
+      if (r?.demo) { cbs?.onError('demo'); return; }   // real Whisper server not running
       const text = (r?.text || '').trim();
       if (text) cbs?.onResult(text);
       else cbs?.onError('empty');

@@ -6,7 +6,7 @@ Set-Location $PSScriptRoot   # always run from the backend folder (where this fi
 
 # Turn ON real on-device Whisper (instead of the fixed demo sentence):
 $env:STT_PROVIDER          = "local"
-$env:WHISPER_MODEL         = "base"
+$env:WHISPER_MODEL         = "small"
 $env:WHISPER_DOWNLOAD_ROOT = "D:/sahulat_models/whisper"   # model cache (auto-downloads here if missing)
 
 # Find a Python that has faster-whisper. Prefer a local .venv; fall back to the D: voice venv.

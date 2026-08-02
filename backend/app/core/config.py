@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     push_provider: str = "mock"
 
     # Speech-to-text (voice interface, BO-4). Used only when stt_provider == "local".
-    whisper_model: str = "base"          # tiny | base | small | medium | large-v3 (base = CPU sweet spot)
+    whisper_model: str = "small"         # tiny | base | small | medium | large-v3 (small = much better Urdu)
     whisper_device: str = "cpu"          # cpu | cuda
     whisper_compute_type: str = "int8"   # int8 (CPU) | float16 (GPU)
     whisper_lang_default: str = "ur"     # Urdu; Whisper still auto-handles English / Roman-Urdu
